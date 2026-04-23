@@ -1,0 +1,23 @@
+{
+  "name": "supplychainai-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
+    "vite": "^8.0.9"
+  },
+  "dependencies": {
+    "@react-google-maps/api": "^2.20.8",
+    "axios": "^1.15.2",
+    "firebase": "^12.12.1",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-router-dom": "^7.14.2"
+  }
+}

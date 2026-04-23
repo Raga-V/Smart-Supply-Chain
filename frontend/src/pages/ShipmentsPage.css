@@ -1,0 +1,51 @@
+/* Shipments Page */
+.shipments-page { max-width: 1400px; margin: 0 auto; }
+
+.filter-tabs {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.filter-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-transform: capitalize;
+  font-family: var(--font-sans);
+}
+.filter-tab:hover { border-color: var(--border-color-hover); color: var(--text-primary); }
+.filter-tab.active {
+  background: var(--accent-primary-glow);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary-light);
+}
+
+.filter-count {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  background: rgba(255,255,255,0.08);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+}
+
+.shipment-id-cell {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--accent-primary-light);
+}
+
+.status-cell { text-transform: capitalize; font-size: 0.8125rem; }
+.risk-score-cell { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; }
+.capitalize { text-transform: capitalize; }
+.text-muted { color: var(--text-muted); font-size: 0.8125rem; }

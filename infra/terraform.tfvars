@@ -1,0 +1,6 @@
+project_id         = "solutionchallenge-494200"
+project_name       = "SolutionChallenge"
+region             = "asia-south1"
+zone               = "asia-south1-a"
+environment        = "dev"
+service_account_id = "supply-chain-sa"
