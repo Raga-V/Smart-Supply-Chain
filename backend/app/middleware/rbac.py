@@ -33,7 +33,7 @@ PERMISSIONS = {
     "user:list": ["admin", "manager"],
 
     # Shipment management
-    "shipment:create": ["admin", "manager"],
+    "shipment:create": ["admin"],          # Only admin can create; managers submit requests
     "shipment:update": ["admin", "manager"],
     "shipment:delete": ["admin"],
     "shipment:read": ["admin", "manager", "analyst", "fleet_manager", "driver"],
@@ -58,8 +58,8 @@ PERMISSIONS = {
     "decision:override": ["admin"],
 
     # Messages
-    "message:send": ["admin", "manager", "driver"],
-    "message:read": ["admin", "manager", "driver"],
+    "message:send": ["admin", "manager", "fleet_manager", "driver", "analyst"],
+    "message:read": ["admin", "manager", "fleet_manager", "driver", "analyst"],
 
     # Analytics
     "analytics:read": ["admin", "manager", "analyst"],

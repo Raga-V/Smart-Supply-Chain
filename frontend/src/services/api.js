@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { auth } from '../config/firebase';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -23,7 +23,6 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired — redirect to login
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -61,6 +60,9 @@ export const shipmentAPI = {
   delete: (id) => api.delete(`/api/shipments/${id}`),
   dispatch: (id) => api.post(`/api/shipments/${id}/dispatch`),
   stats: () => api.get('/api/shipments/stats'),
+  getLocation: (id) => api.get(`/api/shipments/${id}/location`),
+  getGpsTrack: (id, limit = 100) => api.get(`/api/shipments/${id}/gps-track`, { params: { limit } }),
+  getEvents: (id) => api.get(`/api/shipments/${id}/events`),
 };
 
 // ── Fleet ───────────────────────────────────────────────────────
@@ -88,9 +90,77 @@ export const riskAPI = {
 };
 
 // ── Messages ────────────────────────────────────────────────────
-export const messageAPI = {
+export const messagesAPI = {
   send: (data) => api.post('/api/messages/', data),
   list: (params) => api.get('/api/messages/', { params }),
+  unreadCount: () => api.get('/api/messages/unread-count'),
+  markRead: (id) => api.post(`/api/messages/${id}/read`),
+  threads: () => api.get('/api/messages/threads'),
+};
+// Legacy alias
+export const messageAPI = messagesAPI;
+
+// ── Streaming (GPS Simulation) ──────────────────────────────────
+export const streamingAPI = {
+  start: (shipmentId) => api.post(`/api/streaming/start/${shipmentId}`),
+  stop: (shipmentId) => api.post(`/api/streaming/stop/${shipmentId}`),
+  active: () => api.get('/api/streaming/active'),
+};
+
+// ── Analytics ───────────────────────────────────────────────────
+export const analyticsAPI = {
+  overview: () => api.get('/api/analytics/overview'),
+  riskTimeline: (days = 30) => api.get('/api/analytics/risk-timeline', { params: { days } }),
+  carrierPerformance: () => api.get('/api/analytics/carrier-performance'),
+  delayDistribution: () => api.get('/api/analytics/delay-distribution'),
+  routeHeatmap: () => api.get('/api/analytics/route-heatmap'),
+  delayForecast: () => api.get('/api/analytics/delay-forecast'),
+};
+
+// ── Decisions (Phase 3 Self-Healing) ────────────────────────
+export const decisionsAPI = {
+  generate: (shipmentId) => api.post(`/api/decisions/generate/${shipmentId}`),
+  approve: (decisionId, action) => api.post(`/api/decisions/${decisionId}/approve`, { action }),
+  reject: (decisionId, reason) => api.post(`/api/decisions/${decisionId}/reject`, { reason }),
+  pending: () => api.get('/api/decisions/pending'),
+  history: (limit = 100) => api.get('/api/decisions/history', { params: { limit } }),
+  impactSummary: () => api.get('/api/decisions/impact-summary'),
+};
+
+// ── Digital Twin (Phase 4 Simulation) ───────────────────────
+export const digitalTwinAPI = {
+  simulate: (payload) => api.post('/api/digital-twin/simulate', payload),
+};
+
+// ── Monitoring (Phase 5) ─────────────────────────────────────
+export const monitoringAPI = {
+  health:       () => api.get('/api/monitoring/health'),
+  metrics:      () => api.get('/api/monitoring/metrics'),
+  sla:          () => api.get('/api/monitoring/sla'),
+  alertsLog:    (limit = 50) => api.get('/api/monitoring/alerts-log', { params: { limit } }),
+  activityFeed: (limit = 30) => api.get('/api/monitoring/activity-feed', { params: { limit } }),
+};
+
+// ── Reports (Phase 5) ────────────────────────────────────────
+export const reportsAPI = {
+  summary:           () => api.get('/api/reports/summary'),
+  exportShipments:   () => api.get('/api/reports/export/shipments.csv', { responseType: 'blob' }),
+  exportDecisions:   () => api.get('/api/reports/export/decisions.csv', { responseType: 'blob' }),
+};
+
+// ── Shipment Requests (Manager → Admin) ─────────────────────
+export const shipmentRequestAPI = {
+  create:  (data) => api.post('/api/shipment-requests/', data),
+  list:    (params) => api.get('/api/shipment-requests/', { params }),
+  pending: () => api.get('/api/shipment-requests/pending'),
+  get:     (id) => api.get(`/api/shipment-requests/${id}`),
+  review:  (id, data) => api.post(`/api/shipment-requests/${id}/review`, data),
+};
+
+// ── Route Optimization ────────────────────────────────────────
+export const routeAPI = {
+  optimize: (data) => api.post('/api/shipments/optimize-route', data),
+  predict:  (data) => api.post('/api/risk/predict', data),
 };
 
 export default api;

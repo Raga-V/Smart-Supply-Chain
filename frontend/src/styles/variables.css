@@ -1,88 +1,112 @@
 /* ============================================================
-   Supply Chain Intelligence — Design System Variables
+   Raga-V Supply Chain Intelligence — Design System
+   Clean Professional Palette · Vibrant but Calm
    ============================================================ */
 
 :root {
-  /* ── Base Colors ──────────────────────────────────────────── */
-  --bg-primary: #050a18;
-  --bg-secondary: #0a1128;
-  --bg-tertiary: #0f1a3a;
-  --bg-card: rgba(15, 26, 58, 0.7);
-  --bg-card-hover: rgba(20, 35, 75, 0.85);
-  --bg-glass: rgba(15, 26, 58, 0.45);
-  --bg-input: rgba(10, 17, 40, 0.8);
+  /* ── Base Backgrounds ─────────────────────────────────────── */
+  --bg-primary:    #f4f6fb;
+  --bg-secondary:  #ffffff;
+  --bg-tertiary:   #eef1f8;
+  --bg-card:       rgba(255, 255, 255, 0.92);
+  --bg-card-hover: rgba(255, 255, 255, 1);
+  --bg-glass:      rgba(255, 255, 255, 0.70);
+  --bg-input:      #ffffff;
+  --bg-overlay:    rgba(15, 23, 42, 0.45);
+  --bg-sidebar:    #1e2a4a;
+  --bg-sidebar-hover: rgba(255,255,255,0.08);
+  --bg-sidebar-active: rgba(99,102,241,0.18);
 
   /* ── Accent Colors ────────────────────────────────────────── */
-  --accent-primary: #6366f1;
-  --accent-primary-light: #818cf8;
-  --accent-primary-glow: rgba(99, 102, 241, 0.25);
-  --accent-secondary: #06b6d4;
-  --accent-secondary-light: #22d3ee;
-  --accent-secondary-glow: rgba(6, 182, 212, 0.2);
+  --accent-primary:        #4f46e5;
+  --accent-primary-light:  #818cf8;
+  --accent-primary-dark:   #3730a3;
+  --accent-primary-glow:   rgba(79, 70, 229, 0.16);
+  --accent-secondary:      #0d9488;
+  --accent-secondary-light: #14b8a6;
+  --accent-secondary-glow:  rgba(13, 148, 136, 0.14);
+  --accent-tertiary:       #f472b6;
+  --accent-amber:          #f59e0b;
+  --accent-sky:            #0ea5e9;
+
+  /* ── Gradient Accents ─────────────────────────────────────── */
+  --gradient-primary: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --gradient-teal:    linear-gradient(135deg, #0d9488 0%, #0ea5e9 100%);
+  --gradient-hero:    linear-gradient(135deg, #1e2a4a 0%, #2d3a6b 60%, #1e3a5f 100%);
+  --gradient-card:    linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(244,246,251,0.85) 100%);
 
   /* ── Risk Colors ──────────────────────────────────────────── */
-  --risk-low: #22c55e;
-  --risk-low-bg: rgba(34, 197, 94, 0.12);
-  --risk-medium: #f59e0b;
-  --risk-medium-bg: rgba(245, 158, 11, 0.12);
-  --risk-high: #ef4444;
-  --risk-high-bg: rgba(239, 68, 68, 0.12);
-  --risk-critical: #dc2626;
-  --risk-critical-bg: rgba(220, 38, 38, 0.15);
+  --risk-low:         #16a34a;
+  --risk-low-bg:      rgba(22, 163, 74, 0.10);
+  --risk-low-border:  rgba(22, 163, 74, 0.25);
+  --risk-medium:      #d97706;
+  --risk-medium-bg:   rgba(217, 119, 6, 0.10);
+  --risk-medium-border: rgba(217, 119, 6, 0.25);
+  --risk-high:        #dc2626;
+  --risk-high-bg:     rgba(220, 38, 38, 0.10);
+  --risk-high-border: rgba(220, 38, 38, 0.25);
+  --risk-critical:    #b91c1c;
+  --risk-critical-bg: rgba(185, 28, 28, 0.12);
 
   /* ── Status Colors ────────────────────────────────────────── */
-  --status-draft: #94a3b8;
-  --status-pending: #f59e0b;
-  --status-active: #06b6d4;
-  --status-delivered: #22c55e;
-  --status-cancelled: #ef4444;
+  --status-draft:     #94a3b8;
+  --status-pending:   #d97706;
+  --status-active:    #0d9488;
+  --status-delivered: #16a34a;
+  --status-cancelled: #dc2626;
 
   /* ── Text Colors ──────────────────────────────────────────── */
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-accent: #818cf8;
+  --text-primary:   #0f172a;
+  --text-secondary: #475569;
+  --text-muted:     #94a3b8;
+  --text-accent:    #4f46e5;
+  --text-on-dark:   #f1f5f9;
+  --text-on-dark-secondary: #94a3b8;
 
   /* ── Border & Surface ─────────────────────────────────────── */
-  --border-color: rgba(99, 102, 241, 0.15);
-  --border-color-hover: rgba(99, 102, 241, 0.35);
-  --border-color-active: rgba(99, 102, 241, 0.6);
-  --surface-glow: 0 0 30px rgba(99, 102, 241, 0.08);
+  --border-color:        rgba(79, 70, 229, 0.10);
+  --border-color-light:  #e2e8f0;
+  --border-color-hover:  rgba(79, 70, 229, 0.28);
+  --border-color-active: rgba(79, 70, 229, 0.50);
+  --surface-glow:        0 0 40px rgba(79, 70, 229, 0.06);
 
   /* ── Spacing ──────────────────────────────────────────────── */
-  --space-xs: 0.25rem;
-  --space-sm: 0.5rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-  --space-xl: 2rem;
+  --space-xs:  0.25rem;
+  --space-sm:  0.5rem;
+  --space-md:  1rem;
+  --space-lg:  1.5rem;
+  --space-xl:  2rem;
   --space-2xl: 3rem;
 
   /* ── Border Radius ────────────────────────────────────────── */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   16px;
+  --radius-xl:   24px;
   --radius-full: 9999px;
 
   /* ── Typography ───────────────────────────────────────────── */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-  --font-display: 'Outfit', 'Inter', sans-serif;
+  --font-sans:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+  --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
 
   /* ── Transitions ──────────────────────────────────────────── */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base:   250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow:   400ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* ── Shadows ──────────────────────────────────────────────── */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px var(--accent-primary-glow);
+  --shadow-sm:   0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-md:   0 4px 16px rgba(15,23,42,0.08), 0 2px 4px rgba(15,23,42,0.04);
+  --shadow-lg:   0 10px 40px rgba(15,23,42,0.12), 0 4px 12px rgba(15,23,42,0.06);
+  --shadow-xl:   0 20px 60px rgba(15,23,42,0.15), 0 8px 20px rgba(15,23,42,0.08);
+  --shadow-glow: 0 0 24px rgba(79, 70, 229, 0.20);
+  --shadow-card: 0 1px 3px rgba(15,23,42,0.06), 0 4px 16px rgba(15,23,42,0.06);
+  --shadow-card-hover: 0 4px 20px rgba(15,23,42,0.12), 0 8px 32px rgba(79,70,229,0.08);
 
   /* ── Sidebar ──────────────────────────────────────────────── */
-  --sidebar-width: 260px;
+  --sidebar-width:     260px;
   --sidebar-collapsed: 72px;
-  --header-height: 64px;
+  --header-height:     64px;
 }

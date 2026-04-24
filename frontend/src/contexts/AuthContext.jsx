@@ -19,18 +19,35 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Get custom claims for role/org
-        const token = await firebaseUser.getIdTokenResult();
-        setUser(firebaseUser);
-        setUserProfile({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-          orgId: token.claims.org_id || null,
-          role: token.claims.role || null,
-        });
+        try {
+          // Get custom claims for role/org
+          const token = await firebaseUser.getIdTokenResult();
+          const rawToken = await firebaseUser.getIdToken();
+          window.__fbToken = rawToken;
+          // Helper: always get a fresh token from console via getFbToken()
+          window.getFbToken = async () => {
+            const t = await firebaseUser.getIdToken(true);
+            window.__fbToken = t;
+            console.log('Token copied! Length:', t.length);
+            copy(t);
+            return t;
+          };
+          setUser(firebaseUser);
+          setUserProfile({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+            orgId: token.claims.org_id || null,
+            role: token.claims.role || null,
+          });
+        } catch (err) {
+          console.error('Error getting token:', err);
+          setUser(firebaseUser);
+        }
       } else {
+        window.__fbToken = null;
+        window.getFbToken = null;
         setUser(null);
         setUserProfile(null);
       }
@@ -92,8 +109,12 @@ export function AuthProvider({ children }) {
     getToken,
     refreshClaims,
     isAuthenticated: !!user,
-    isAdmin: userProfile?.role === 'admin',
-    isManager: ['admin', 'manager'].includes(userProfile?.role),
+    isAdmin:        userProfile?.role === 'admin',
+    isManager:      ['admin', 'manager'].includes(userProfile?.role),
+    isFleetManager: userProfile?.role === 'fleet_manager',
+    isAnalyst:      userProfile?.role === 'analyst',
+    isDriver:       userProfile?.role === 'driver',
+    role:           userProfile?.role || null,
   };
 
   return (

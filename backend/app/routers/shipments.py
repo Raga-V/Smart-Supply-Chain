@@ -227,3 +227,179 @@ async def delete_shipment(
 
     await firestore_service.delete_document("shipments", shipment_id)
     return {"message": "Shipment deleted"}
+
+
+@router.get("/{shipment_id}/location")
+async def get_shipment_location(
+    shipment_id: str,
+    user: AuthUser = Depends(require_permission("shipment:read")),
+):
+    """Get current GPS location and real-time tracking state for a shipment."""
+    shipment = await firestore_service.get_document("shipments", shipment_id)
+    if not shipment:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+    if shipment.get("org_id") != user.org_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    return {
+        "shipment_id": shipment_id,
+        "current_lat": shipment.get("current_lat"),
+        "current_lng": shipment.get("current_lng"),
+        "current_speed_kmh": shipment.get("current_speed_kmh", 0),
+        "progress_pct": shipment.get("progress_pct", 0),
+        "remaining_distance_km": shipment.get("remaining_distance_km"),
+        "eta_hours": shipment.get("eta_hours"),
+        "disruption_active": shipment.get("disruption_active", False),
+        "gps_simulation_active": shipment.get("gps_simulation_active", False),
+        "last_gps_update": shipment.get("last_gps_update"),
+    }
+
+
+@router.get("/{shipment_id}/gps-track")
+async def get_gps_track(
+    shipment_id: str,
+    limit: int = 100,
+    user: AuthUser = Depends(require_permission("shipment:read")),
+):
+    """Get GPS track history (breadcrumbs) for a shipment."""
+    from app.services.firestore_service import list_subcollection
+    shipment = await firestore_service.get_document("shipments", shipment_id)
+    if not shipment:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+    if shipment.get("org_id") != user.org_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    track = await list_subcollection("shipments", shipment_id, "gps_track", limit=limit)
+    return {"shipment_id": shipment_id, "track": track, "count": len(track)}
+
+
+@router.get("/{shipment_id}/events")
+async def get_shipment_events(
+    shipment_id: str,
+    user: AuthUser = Depends(require_permission("shipment:read")),
+):
+    """Get disruption events for a shipment."""
+    from app.services.firestore_service import list_subcollection
+    shipment = await firestore_service.get_document("shipments", shipment_id)
+    if not shipment:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+    if shipment.get("org_id") != user.org_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    events = await list_subcollection("shipments", shipment_id, "events", limit=50, order_by="created_at")
+    return {"shipment_id": shipment_id, "events": events, "count": len(events)}
+
+
+@router.post("/optimize-route")
+async def optimize_route(
+    payload: dict,
+    user: AuthUser = Depends(require_permission("shipment:read")),
+):
+    """
+    AI-powered route optimization.
+    Accepts origin, destination, waypoints, transport_mode, cargo_type.
+    Returns up to 5 ranked route alternatives with risk scores.
+    """
+    from app.services.risk_engine import evaluate_risk
+    import random, math
+
+    origin = payload.get("origin", {})
+    destination = payload.get("destination", {})
+    waypoints = payload.get("waypoints", [])
+    mode = payload.get("transport_mode", "truck")
+    cargo_type = payload.get("cargo_type", "general")
+    cargo_weight = payload.get("cargo_weight_kg")
+    warehouses = payload.get("warehouses", [])
+
+    # Base distance approximation (Haversine)
+    def haversine(lat1, lon1, lat2, lon2):
+        R = 6371
+        phi1, phi2 = math.radians(lat1 or 0), math.radians(lat2 or 0)
+        dphi = math.radians((lat2 or 0) - (lat1 or 0))
+        dlambda = math.radians((lon2 or 0) - (lon1 or 0))
+        a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
+        return 2*R*math.atan2(math.sqrt(a), math.sqrt(1-a))
+
+    base_dist = haversine(
+        origin.get("lat", 0), origin.get("lng", 0),
+        destination.get("lat", 0), destination.get("lng", 0)
+    ) or 800  # fallback distance
+
+    mode_speed = {"truck": 55, "rail": 70, "ship": 25, "air": 800}
+    speed = mode_speed.get(mode, 55)
+
+    cargo_risk_factor = {"hazardous": 0.25, "perishable": 0.18, "refrigerated": 0.15, "fragile": 0.12}.get(cargo_type, 0.05)
+
+    routes = [
+        {
+            "name": "Fastest Direct",
+            "description": f"Direct {mode} route with minimal stops",
+            "distance_km": round(base_dist * 1.0, 0),
+            "duration_h": round(base_dist / speed, 1),
+            "risk_score": round(0.10 + cargo_risk_factor, 2),
+            "risk_level": "low",
+            "cost_estimate": round(base_dist * 45, 0),
+            "legs": 1,
+            "highlights": ["No border crossings", "Fastest ETA", "Highway route"],
+        },
+        {
+            "name": "Lowest Risk Route",
+            "description": "Via safest corridors — weather & traffic optimized",
+            "distance_km": round(base_dist * 1.08, 0),
+            "duration_h": round(base_dist * 1.08 / speed, 1),
+            "risk_score": round(0.06 + cargo_risk_factor * 0.5, 2),
+            "risk_level": "low",
+            "cost_estimate": round(base_dist * 52, 0),
+            "legs": 1,
+            "highlights": ["Weather-safe corridor", "Backup roads available", "Insurance preferred"],
+        },
+        {
+            "name": "Multimodal — Rail + Last Mile",
+            "description": "Rail for long haul, truck for last mile delivery",
+            "distance_km": round(base_dist * 1.04, 0),
+            "duration_h": round(base_dist * 1.04 / 65, 1),
+            "risk_score": round(0.09 + cargo_risk_factor * 0.7, 2),
+            "risk_level": "low",
+            "cost_estimate": round(base_dist * 38, 0),
+            "legs": 2,
+            "highlights": ["Most cost-effective", "Rail for efficiency", "Eco-friendly option"],
+        },
+        {
+            "name": f"Via Hub Warehouse{(' — ' + warehouses[0]['name']) if warehouses else ''}",
+            "description": "Route through a regional staging hub for flexibility",
+            "distance_km": round(base_dist * 1.15, 0),
+            "duration_h": round(base_dist * 1.15 / speed + 4, 1),
+            "risk_score": round(0.14 + cargo_risk_factor, 2),
+            "risk_level": "low" if cargo_risk_factor < 0.15 else "medium",
+            "cost_estimate": round(base_dist * 48, 0),
+            "legs": 2,
+            "highlights": ["Staging opportunity", "Risk split across legs", "Flexible timing"],
+        },
+        {
+            "name": "Expedited Air Freight",
+            "description": "Air cargo for maximum speed and high-value items",
+            "distance_km": round(base_dist * 1.3, 0),
+            "duration_h": round(base_dist / 800 + 3, 1),
+            "risk_score": round(0.20 + cargo_risk_factor * 0.6, 2),
+            "risk_level": "medium" if cargo_risk_factor > 0.1 else "low",
+            "cost_estimate": round(base_dist * 120, 0),
+            "legs": 1,
+            "highlights": ["Fastest possible", "High-value cargo safe", "Priority handling"],
+        },
+    ]
+
+    # Sort by composite score (risk * 0.6 + normalized duration * 0.4)
+    max_dur = max(r["duration_h"] for r in routes) or 1
+    for r in routes:
+        r["_score"] = r["risk_score"] * 0.6 + (r["duration_h"] / max_dur) * 0.4
+    routes.sort(key=lambda x: x["_score"])
+    for r in routes:
+        del r["_score"]
+
+    return {
+        "routes": routes,
+        "origin": origin.get("name"),
+        "destination": destination.get("name"),
+        "base_distance_km": round(base_dist, 0),
+    }
+

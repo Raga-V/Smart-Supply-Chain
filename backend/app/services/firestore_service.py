@@ -161,3 +161,44 @@ async def list_org_documents(
         data["id"] = doc.id
         results.append(data)
     return results
+
+
+async def update_org_document(
+    org_id: str, sub_collection: str, doc_id: str, data: Dict[str, Any]
+) -> bool:
+    """Update a document in an org-scoped sub-collection."""
+    client = get_client()
+    data["updated_at"] = datetime.now(timezone.utc)
+    (
+        client.collection("organizations")
+        .document(org_id)
+        .collection(sub_collection)
+        .document(doc_id)
+        .update(data)
+    )
+    return True
+
+
+async def list_subcollection(
+    parent_collection: str,
+    parent_id: str,
+    sub_collection: str,
+    limit: int = 100,
+    order_by: Optional[str] = "timestamp",
+) -> List[Dict[str, Any]]:
+    """List documents from a top-level document's sub-collection (e.g., GPS track)."""
+    client = get_client()
+    query = (
+        client.collection(parent_collection)
+        .document(parent_id)
+        .collection(sub_collection)
+    )
+    if order_by:
+        query = query.order_by(order_by, direction=firestore.Query.ASCENDING)
+    query = query.limit(limit)
+    results = []
+    for doc in query.stream():
+        data = doc.to_dict()
+        data["id"] = doc.id
+        results.append(data)
+    return results

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { orgAPI } from '../services/api';
+import { Users, UserPlus, Shield, X } from 'lucide-react';
 
 const DEMO_USERS = [
   { uid: 'u1', email: 'admin@acme.com', display_name: 'Jane Admin', role: 'admin', status: 'active' },
@@ -27,10 +28,15 @@ export default function UsersPage() {
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: 1000, margin: '0 auto' }}>
-      <div className="page-header"><h1>👥 Team Members</h1><button className="btn btn-primary" onClick={() => setShowInvite(!showInvite)}>➕ Invite User</button></div>
+      <div className="page-header">
+        <h1><Users size={22} className="icon" /> Team Members</h1>
+        <button className="btn btn-primary" onClick={() => setShowInvite(!showInvite)}>
+          {showInvite ? <><X size={14} /> Cancel</> : <><UserPlus size={14} /> Invite User</>}
+        </button>
+      </div>
 
       {showInvite && (
-        <div className="glass-card" style={{ marginBottom: '1.5rem' }}>
+        <div className="glass-card animate-fade-in-up" style={{ marginBottom: 'var(--space-lg)' }}>
           <div className="grid grid-3" style={{ gap: '1rem' }}>
             <div className="form-group"><label className="form-label">Email</label><input className="form-input" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="user@company.com" /></div>
             <div className="form-group"><label className="form-label">Name</label><input className="form-input" value={form.display_name} onChange={e => setForm({ ...form, display_name: e.target.value })} /></div>
@@ -40,15 +46,26 @@ export default function UsersPage() {
         </div>
       )}
 
-      <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="glass-card-static" style={{ padding: 0, overflow: 'hidden' }}>
         <table className="data-table">
           <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr></thead>
           <tbody>
             {users.map(u => (
               <tr key={u.uid}>
-                <td><div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><div style={{ width: 32, height: 32, borderRadius: '50%', background: `linear-gradient(135deg, ${ROLE_COLORS[u.role]}, var(--accent-primary))`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '0.75rem', flexShrink: 0 }}>{(u.display_name || u.email)[0].toUpperCase()}</div>{u.display_name || u.email.split('@')[0]}</div></td>
-                <td style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{u.email}</td>
-                <td><span style={{ color: ROLE_COLORS[u.role], fontWeight: 600, textTransform: 'capitalize' }}>{u.role?.replace('_', ' ')}</span></td>
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: `linear-gradient(135deg, ${ROLE_COLORS[u.role] || 'var(--accent-primary)'}, var(--accent-primary))`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '0.75rem', flexShrink: 0 }}>
+                      {(u.display_name || u.email)[0].toUpperCase()}
+                    </div>
+                    <span style={{ fontWeight: 500 }}>{u.display_name || u.email.split('@')[0]}</span>
+                  </div>
+                </td>
+                <td style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>{u.email}</td>
+                <td>
+                  <span style={{ color: ROLE_COLORS[u.role], fontWeight: 600, textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Shield size={12} /> {u.role?.replace('_', ' ')}
+                  </span>
+                </td>
                 <td><span className={`badge ${u.status === 'active' ? 'badge-low' : 'badge-medium'}`}>{u.status}</span></td>
               </tr>
             ))}

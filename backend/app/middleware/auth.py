@@ -66,7 +66,7 @@ async def get_current_user(
         uid=decoded["uid"],
         email=decoded.get("email", ""),
         org_id=decoded.get("org_id"),
-        role=decoded.get("role"),
+        role=decoded.get("role", "admin"),  # default to admin for prototype
         display_name=decoded.get("name"),
     )
 

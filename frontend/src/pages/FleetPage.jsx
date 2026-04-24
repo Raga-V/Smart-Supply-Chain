@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fleetAPI } from '../services/api';
+import { Truck, PlusCircle, Gauge, Wrench, CheckCircle2, X } from 'lucide-react';
 
 const DEMO = [
   { id: 'v1', vehicle_id: 'MH-01-AB-1234', vehicle_type: 'truck', capacity_kg: 10000, status: 'available' },
@@ -8,6 +9,7 @@ const DEMO = [
 ];
 
 const STATUS_COLORS = { available: 'var(--risk-low)', in_transit: 'var(--accent-secondary)', maintenance: 'var(--risk-medium)' };
+const STATUS_ICONS = { available: CheckCircle2, in_transit: Truck, maintenance: Wrench };
 
 export default function FleetPage() {
   const [vehicles, setVehicles] = useState(DEMO);
@@ -30,19 +32,37 @@ export default function FleetPage() {
     } catch { setVehicles([...vehicles, { id: 'new', ...form }]); setShowForm(false); }
   };
 
+  const metricCards = [
+    { icon: Truck, label: 'Total Vehicles', value: stats.total, color: null },
+    { icon: CheckCircle2, label: 'Available', value: stats.available, color: 'var(--risk-low)' },
+    { icon: Gauge, label: 'In Transit', value: stats.in_transit, color: 'var(--accent-secondary)' },
+    { icon: Wrench, label: 'Maintenance', value: stats.maintenance, color: 'var(--risk-medium)' },
+  ];
+
   return (
     <div className="animate-fade-in" style={{ maxWidth: 1200, margin: '0 auto' }}>
-      <div className="page-header"><h1>🚛 Fleet Management</h1><button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>➕ Add Vehicle</button></div>
+      <div className="page-header">
+        <h1><Truck size={22} className="icon" /> Fleet Management</h1>
+        <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+          {showForm ? <><X size={14} /> Cancel</> : <><PlusCircle size={14} /> Add Vehicle</>}
+        </button>
+      </div>
 
-      <div className="grid grid-4 stagger-children" style={{ marginBottom: '1.5rem' }}>
-        <div className="glass-card metric-card"><div className="metric-value">{stats.total}</div><div className="metric-label">Total Vehicles</div></div>
-        <div className="glass-card metric-card"><div className="metric-value" style={{ color: 'var(--risk-low)' }}>{stats.available}</div><div className="metric-label">Available</div></div>
-        <div className="glass-card metric-card"><div className="metric-value" style={{ color: 'var(--accent-secondary)' }}>{stats.in_transit}</div><div className="metric-label">In Transit</div></div>
-        <div className="glass-card metric-card"><div className="metric-value" style={{ color: 'var(--risk-medium)' }}>{stats.maintenance}</div><div className="metric-label">Maintenance</div></div>
+      <div className="grid grid-4 stagger-children" style={{ marginBottom: 'var(--space-lg)' }}>
+        {metricCards.map(m => {
+          const Icon = m.icon;
+          return (
+            <div key={m.label} className="glass-card metric-card">
+              <div className="metric-icon-wrap"><Icon size={18} /></div>
+              <div className="metric-value" style={m.color ? {color: m.color} : undefined}>{m.value}</div>
+              <div className="metric-label">{m.label}</div>
+            </div>
+          );
+        })}
       </div>
 
       {showForm && (
-        <div className="glass-card" style={{ marginBottom: '1.5rem' }}>
+        <div className="glass-card animate-fade-in-up" style={{ marginBottom: 'var(--space-lg)' }}>
           <div className="grid grid-2" style={{ gap: '1rem' }}>
             <div className="form-group"><label className="form-label">Vehicle ID</label><input className="form-input" value={form.vehicle_id} onChange={e => setForm({ ...form, vehicle_id: e.target.value })} placeholder="MH-01-XX-0000" /></div>
             <div className="form-group"><label className="form-label">Type</label><select className="form-select" value={form.vehicle_type} onChange={e => setForm({ ...form, vehicle_type: e.target.value })}><option value="truck">Truck</option><option value="van">Van</option><option value="trailer">Trailer</option></select></div>
@@ -53,18 +73,25 @@ export default function FleetPage() {
         </div>
       )}
 
-      <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="glass-card-static" style={{ padding: 0, overflow: 'hidden' }}>
         <table className="data-table">
           <thead><tr><th>Vehicle ID</th><th>Type</th><th>Capacity</th><th>Status</th></tr></thead>
           <tbody>
-            {vehicles.map(v => (
-              <tr key={v.id}>
-                <td><span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-primary-light)' }}>{v.vehicle_id}</span></td>
-                <td style={{ textTransform: 'capitalize' }}>{v.vehicle_type}</td>
-                <td>{Number(v.capacity_kg).toLocaleString()} kg</td>
-                <td><span style={{ color: STATUS_COLORS[v.status], fontWeight: 600, textTransform: 'capitalize' }}>● {v.status?.replace('_', ' ')}</span></td>
-              </tr>
-            ))}
+            {vehicles.map(v => {
+              const SIcon = STATUS_ICONS[v.status] || Truck;
+              return (
+                <tr key={v.id}>
+                  <td><span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-primary-light)' }}>{v.vehicle_id}</span></td>
+                  <td style={{ textTransform: 'capitalize' }}>{v.vehicle_type}</td>
+                  <td>{Number(v.capacity_kg).toLocaleString()} kg</td>
+                  <td>
+                    <span style={{ color: STATUS_COLORS[v.status], fontWeight: 600, textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <SIcon size={13} /> {v.status?.replace('_', ' ')}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

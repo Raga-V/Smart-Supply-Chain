@@ -67,7 +67,14 @@ async def invite_user(
         "role": payload.role,
     })
 
-    # Create user document
+    # Generate password reset link so invited user can set their own password
+    invite_link = None
+    try:
+        invite_link = firebase_auth.generate_password_reset_link(payload.email)
+    except Exception:
+        pass  # Non-critical — admin can still share the link manually
+
+    # Store user document
     user_data = {
         "uid": target_user.uid,
         "email": payload.email,
@@ -76,18 +83,35 @@ async def invite_user(
         "org_id": user.org_id,
         "status": "invited",
         "invited_by": user.uid,
+        "invite_link": invite_link,
     }
     await firestore_service.create_document("users", user_data, doc_id=target_user.uid)
 
     # Increment member count
     org = await firestore_service.get_document("organizations", user.org_id)
+    org_name = org.get("name", "your organization") if org else "your organization"
     if org:
         await firestore_service.update_document(
             "organizations", user.org_id,
             {"member_count": org.get("member_count", 0) + 1}
         )
 
-    return {"uid": target_user.uid, "message": f"User invited as {payload.role}"}
+    # Notify org about new team member
+    from app.services.notification_service import notify_org
+    await notify_org(
+        org_id=user.org_id,
+        title="New Team Member Invited",
+        message=f"{payload.display_name or payload.email} has been invited as {payload.role.replace('_', ' ').title()}.",
+        type="info",
+        target_roles=["admin"],
+    )
+
+    return {
+        "uid": target_user.uid,
+        "message": f"User invited as {payload.role}",
+        "invite_link": invite_link,
+        "note": "Share the invite_link with the user so they can set their password and log in.",
+    }
 
 
 @router.get("/users")

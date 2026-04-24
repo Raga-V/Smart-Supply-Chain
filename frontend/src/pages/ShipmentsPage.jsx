@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { shipmentAPI } from '../services/api';
+import {
+  Package, PlusCircle, Truck, Train, Ship, Plane,
+  FileText, Clock, AlertTriangle, Circle, CheckCircle2, XCircle
+} from 'lucide-react';
 import './ShipmentsPage.css';
 
 const DEMO_SHIPMENTS = [
@@ -12,8 +16,8 @@ const DEMO_SHIPMENTS = [
   { id: 'SHP-006', origin_name: 'Surat', destination_name: 'Nagpur', status: 'draft', risk_level: 'low', risk_score: 0.30, transport_mode: 'rail', cargo_type: 'general', cargo_weight_kg: 10000, priority: 'normal', created_at: '2026-04-22T12:00:00Z' },
 ];
 
-const STATUS_ICONS = { draft: '📝', pending: '⏳', in_transit: '🚛', at_risk: '⚠️', delayed: '🔴', delivered: '✅', cancelled: '❌' };
-const MODE_ICONS = { truck: '🚛', rail: '🚂', ship: '🚢', air: '✈️' };
+const STATUS_ICONS = { draft: FileText, pending: Clock, in_transit: Truck, at_risk: AlertTriangle, delayed: Circle, delivered: CheckCircle2, cancelled: XCircle };
+const MODE_ICONS = { truck: Truck, rail: Train, ship: Ship, air: Plane };
 
 export default function ShipmentsPage() {
   const [shipments, setShipments] = useState(DEMO_SHIPMENTS);
@@ -37,8 +41,8 @@ export default function ShipmentsPage() {
   return (
     <div className="shipments-page animate-fade-in">
       <div className="page-header">
-        <h1>📦 Shipments</h1>
-        <button className="btn btn-primary" onClick={() => navigate('/shipments/new')}>➕ Create Shipment</button>
+        <h1><Package size={22} className="icon" /> Shipments</h1>
+        <button className="btn btn-primary" onClick={() => navigate('/shipments/new')}><PlusCircle size={16} /> Create Shipment</button>
       </div>
 
       {/* Filter Tabs */}
@@ -52,7 +56,7 @@ export default function ShipmentsPage() {
       </div>
 
       {/* Table */}
-      <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="glass-card-static" style={{ padding: 0, overflow: 'hidden' }}>
         <table className="data-table">
           <thead>
             <tr>
@@ -68,25 +72,29 @@ export default function ShipmentsPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(s => (
-              <tr key={s.id} onClick={() => navigate(`/shipments/${s.id}`)} style={{ cursor: 'pointer' }}>
-                <td><span className="shipment-id-cell">{s.id?.substring(0, 8)}</span></td>
-                <td><strong>{s.origin_name}</strong> → <strong>{s.destination_name}</strong></td>
-                <td><span className="status-cell">{STATUS_ICONS[s.status]} {s.status?.replace('_', ' ')}</span></td>
-                <td>
-                  <span className={`badge badge-${s.risk_level}`}>{s.risk_level}</span>
-                  <span className="risk-score-cell">{((s.risk_score || 0) * 100).toFixed(0)}%</span>
-                </td>
-                <td>{MODE_ICONS[s.transport_mode]} {s.transport_mode}</td>
-                <td className="capitalize">{s.cargo_type}</td>
-                <td>{s.cargo_weight_kg?.toLocaleString()} kg</td>
-                <td className="capitalize">{s.priority}</td>
-                <td className="text-muted">{new Date(s.created_at).toLocaleDateString()}</td>
-              </tr>
-            ))}
+            {filtered.map(s => {
+              const StatusIcon = STATUS_ICONS[s.status] || Circle;
+              const ModeIcon = MODE_ICONS[s.transport_mode] || Truck;
+              return (
+                <tr key={s.id} onClick={() => navigate(`/shipments/${s.id}`)} style={{ cursor: 'pointer' }}>
+                  <td><span className="shipment-id-cell">{s.id?.substring(0, 8)}</span></td>
+                  <td><strong>{s.origin_name}</strong> → <strong>{s.destination_name}</strong></td>
+                  <td><span className="status-cell"><StatusIcon size={13} /> {s.status?.replace('_', ' ')}</span></td>
+                  <td>
+                    <span className={`badge badge-${s.risk_level}`}>{s.risk_level}</span>
+                    <span className="risk-score-cell">{((s.risk_score || 0) * 100).toFixed(0)}%</span>
+                  </td>
+                  <td style={{display:'flex',alignItems:'center',gap:'0.375rem'}}><ModeIcon size={14} /> {s.transport_mode}</td>
+                  <td className="capitalize">{s.cargo_type}</td>
+                  <td>{s.cargo_weight_kg?.toLocaleString()} kg</td>
+                  <td className="capitalize">{s.priority}</td>
+                  <td className="text-muted">{new Date(s.created_at).toLocaleDateString()}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-        {filtered.length === 0 && <div className="empty-state"><span className="empty-icon">📦</span><p>No shipments found</p></div>}
+        {filtered.length === 0 && <div className="empty-state"><Package size={32} className="empty-icon" /><p>No shipments found</p></div>}
       </div>
     </div>
   );

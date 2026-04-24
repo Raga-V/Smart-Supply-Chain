@@ -44,7 +44,7 @@ class Settings:
     # CORS
     ALLOWED_ORIGINS: List[str] = os.getenv(
         "ALLOWED_ORIGINS",
-        "http://localhost:5173,http://localhost:3000,https://*.web.app",
+        "http://localhost:5173,http://localhost:5174,http://localhost:3000,https://solutionchallenge-494200.web.app,https://solutionchallenge-494200.firebaseapp.com",
     ).split(",")
 
     # Risk threshold
