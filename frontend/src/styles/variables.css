@@ -1,112 +1,123 @@
 /* ============================================================
-   Raga-V Supply Chain Intelligence — Design System
-   Clean Professional Palette · Vibrant but Calm
+   SupplyEazy — Design Tokens
+   Professional light theme: Navy + Emerald + White
    ============================================================ */
 
 :root {
-  /* ── Base Backgrounds ─────────────────────────────────────── */
-  --bg-primary:    #f4f6fb;
-  --bg-secondary:  #ffffff;
-  --bg-tertiary:   #eef1f8;
-  --bg-card:       rgba(255, 255, 255, 0.92);
-  --bg-card-hover: rgba(255, 255, 255, 1);
-  --bg-glass:      rgba(255, 255, 255, 0.70);
-  --bg-input:      #ffffff;
-  --bg-overlay:    rgba(15, 23, 42, 0.45);
-  --bg-sidebar:    #1e2a4a;
-  --bg-sidebar-hover: rgba(255,255,255,0.08);
-  --bg-sidebar-active: rgba(99,102,241,0.18);
+  /* ── Brand Identity ────────────────────────────────────── */
+  --brand-name: "SupplyEazy";
 
-  /* ── Accent Colors ────────────────────────────────────────── */
-  --accent-primary:        #4f46e5;
-  --accent-primary-light:  #818cf8;
-  --accent-primary-dark:   #3730a3;
-  --accent-primary-glow:   rgba(79, 70, 229, 0.16);
-  --accent-secondary:      #0d9488;
-  --accent-secondary-light: #14b8a6;
-  --accent-secondary-glow:  rgba(13, 148, 136, 0.14);
-  --accent-tertiary:       #f472b6;
-  --accent-amber:          #f59e0b;
-  --accent-sky:            #0ea5e9;
+  /* ── Primary Typography ─────────────────────────────────── */
+  --font-sans:    'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
 
-  /* ── Gradient Accents ─────────────────────────────────────── */
-  --gradient-primary: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-  --gradient-teal:    linear-gradient(135deg, #0d9488 0%, #0ea5e9 100%);
-  --gradient-hero:    linear-gradient(135deg, #1e2a4a 0%, #2d3a6b 60%, #1e3a5f 100%);
-  --gradient-card:    linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(244,246,251,0.85) 100%);
+  /* ── Core Color Palette ─────────────────────────────────── */
+  /* Navy Blue — Primary */
+  --navy-900: #0f172a;
+  --navy-800: #1e293b;
+  --navy-700: #334155;
+  --navy-600: #475569;
+  --navy-500: #64748b;
+  --navy-400: #94a3b8;
+  --navy-300: #cbd5e1;
+  --navy-200: #e2e8f0;
+  --navy-100: #f1f5f9;
+  --navy-50:  #f8fafc;
 
-  /* ── Risk Colors ──────────────────────────────────────────── */
-  --risk-low:         #16a34a;
-  --risk-low-bg:      rgba(22, 163, 74, 0.10);
-  --risk-low-border:  rgba(22, 163, 74, 0.25);
-  --risk-medium:      #d97706;
-  --risk-medium-bg:   rgba(217, 119, 6, 0.10);
-  --risk-medium-border: rgba(217, 119, 6, 0.25);
-  --risk-high:        #dc2626;
-  --risk-high-bg:     rgba(220, 38, 38, 0.10);
-  --risk-high-border: rgba(220, 38, 38, 0.25);
-  --risk-critical:    #b91c1c;
-  --risk-critical-bg: rgba(185, 28, 28, 0.12);
+  /* Emerald — Accent */
+  --emerald-700: #047857;
+  --emerald-600: #059669;
+  --emerald-500: #10b981;
+  --emerald-400: #34d399;
+  --emerald-100: #d1fae5;
+  --emerald-50:  #ecfdf5;
 
-  /* ── Status Colors ────────────────────────────────────────── */
-  --status-draft:     #94a3b8;
-  --status-pending:   #d97706;
-  --status-active:    #0d9488;
-  --status-delivered: #16a34a;
-  --status-cancelled: #dc2626;
+  /* Indigo — Secondary Accent */
+  --indigo-700: #3730a3;
+  --indigo-600: #4338ca;
+  --indigo-500: #4f46e5;
+  --indigo-400: #6366f1;
+  --indigo-100: #e0e7ff;
+  --indigo-50:  #eef2ff;
 
-  /* ── Text Colors ──────────────────────────────────────────── */
+  /* ── Semantic Colors ─────────────────────────────────────── */
+  --accent-primary:       var(--indigo-500);
+  --accent-primary-dark:  var(--indigo-700);
+  --accent-primary-light: var(--indigo-400);
+  --accent-secondary:     var(--emerald-500);
+
+  /* ── Backgrounds ─────────────────────────────────────────── */
+  --bg-primary:   #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary:  #f1f5f9;
+  --bg-card:      #ffffff;
+  --bg-input:     #ffffff;
+  --bg-sidebar:   #0f172a;
+  --bg-sidebar-hover: #1e293b;
+
+  /* ── Text ────────────────────────────────────────────────── */
   --text-primary:   #0f172a;
   --text-secondary: #475569;
   --text-muted:     #94a3b8;
-  --text-accent:    #4f46e5;
-  --text-on-dark:   #f1f5f9;
-  --text-on-dark-secondary: #94a3b8;
+  --text-on-dark:   #ffffff;
+  --text-on-accent: #ffffff;
 
-  /* ── Border & Surface ─────────────────────────────────────── */
-  --border-color:        rgba(79, 70, 229, 0.10);
-  --border-color-light:  #e2e8f0;
-  --border-color-hover:  rgba(79, 70, 229, 0.28);
-  --border-color-active: rgba(79, 70, 229, 0.50);
-  --surface-glow:        0 0 40px rgba(79, 70, 229, 0.06);
+  /* ── Borders ─────────────────────────────────────────────── */
+  --border-color-light: #e2e8f0;
+  --border-color-hover: #cbd5e1;
+  --border-color:       #e2e8f0;
 
-  /* ── Spacing ──────────────────────────────────────────────── */
-  --space-xs:  0.25rem;
-  --space-sm:  0.5rem;
-  --space-md:  1rem;
-  --space-lg:  1.5rem;
-  --space-xl:  2rem;
-  --space-2xl: 3rem;
+  /* ── Risk Colors ─────────────────────────────────────────── */
+  --risk-low:          #059669;
+  --risk-low-bg:       #ecfdf5;
+  --risk-low-border:   #6ee7b7;
 
-  /* ── Border Radius ────────────────────────────────────────── */
-  --radius-sm:   6px;
-  --radius-md:   10px;
-  --radius-lg:   16px;
-  --radius-xl:   24px;
+  --risk-medium:       #d97706;
+  --risk-medium-bg:    #fffbeb;
+  --risk-medium-border:#fcd34d;
+
+  --risk-high:         #dc2626;
+  --risk-high-bg:      #fef2f2;
+  --risk-high-border:  #fca5a5;
+
+  --risk-critical:     #991b1b;
+  --risk-critical-bg:  #fef2f2;
+
+  /* ── Shadows ─────────────────────────────────────────────── */
+  --shadow-xs:   0 1px 2px rgba(15,23,42,0.04);
+  --shadow-sm:   0 1px 3px rgba(15,23,42,0.08), 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-md:   0 4px 6px rgba(15,23,42,0.07), 0 2px 4px rgba(15,23,42,0.06);
+  --shadow-lg:   0 10px 15px rgba(15,23,42,0.08), 0 4px 6px rgba(15,23,42,0.04);
+  --shadow-xl:   0 20px 25px rgba(15,23,42,0.10), 0 10px 10px rgba(15,23,42,0.04);
+  --shadow-card: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-card-hover: 0 4px 12px rgba(15,23,42,0.10), 0 2px 4px rgba(15,23,42,0.06);
+
+  /* ── Border Radius ───────────────────────────────────────── */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  20px;
   --radius-full: 9999px;
 
-  /* ── Typography ───────────────────────────────────────────── */
-  --font-sans:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
-  --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  /* ── Transitions ─────────────────────────────────────────── */
+  --transition-fast: 120ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 350ms ease;
 
-  /* ── Transitions ──────────────────────────────────────────── */
-  --transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base:   250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow:   400ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* ── Spacing ─────────────────────────────────────────────── */
+  --space-xs:   4px;
+  --space-sm:   8px;
+  --space-md:   16px;
+  --space-lg:   24px;
+  --space-xl:   32px;
+  --space-2xl:  48px;
 
-  /* ── Shadows ──────────────────────────────────────────────── */
-  --shadow-sm:   0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
-  --shadow-md:   0 4px 16px rgba(15,23,42,0.08), 0 2px 4px rgba(15,23,42,0.04);
-  --shadow-lg:   0 10px 40px rgba(15,23,42,0.12), 0 4px 12px rgba(15,23,42,0.06);
-  --shadow-xl:   0 20px 60px rgba(15,23,42,0.15), 0 8px 20px rgba(15,23,42,0.08);
-  --shadow-glow: 0 0 24px rgba(79, 70, 229, 0.20);
-  --shadow-card: 0 1px 3px rgba(15,23,42,0.06), 0 4px 16px rgba(15,23,42,0.06);
-  --shadow-card-hover: 0 4px 20px rgba(15,23,42,0.12), 0 8px 32px rgba(79,70,229,0.08);
-
-  /* ── Sidebar ──────────────────────────────────────────────── */
-  --sidebar-width:     260px;
-  --sidebar-collapsed: 72px;
-  --header-height:     64px;
+  /* ── Gradients ───────────────────────────────────────────── */
+  --gradient-primary: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  --gradient-dark:    linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --gradient-emerald: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  --gradient-hero:    linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #312e81 100%);
+  --gradient-teal:    linear-gradient(135deg, #0d9488 0%, #0891b2 100%);
 }

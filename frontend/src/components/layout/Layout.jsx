@@ -1,225 +1,317 @@
 import { useState, useEffect, useRef } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../config/firebase';
-import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, limit, updateDoc, doc } from 'firebase/firestore';
 import {
-  LayoutDashboard, Package, PlusCircle, Truck, Warehouse,
-  Users, MessageSquare, BarChart3, Settings, LogOut,
-  ChevronLeft, ChevronRight, Navigation, Map, Bell,
-  ClipboardList, Route, FileText
+  LayoutDashboard, Package, MapPin, Navigation, Route, ClipboardList,
+  Truck, Warehouse, Users, MessageSquare, BarChart3, Settings,
+  Bell, LogOut, Building2, ChevronDown
 } from 'lucide-react';
 import './Layout.css';
 
-// Role-based nav definitions
-const NAV_CONFIG = {
+// ── Role-based nav config ─────────────────────────────────────
+const NAV = {
   admin: [
-    { path: '/dashboard',          icon: LayoutDashboard, label: 'Control Tower' },
-    { path: '/live-tracking',      icon: Navigation,      label: 'Live Map' },
-    { path: '/shipments',          icon: Package,         label: 'Shipments' },
-    { path: '/shipments/new',      icon: PlusCircle,      label: 'Create Shipment' },
-    { path: '/shipment-requests',  icon: ClipboardList,   label: 'Requests' },
-    { path: '/route-optimization', icon: Route,           label: 'Route Optimizer' },
-    { path: '/fleet',              icon: Truck,           label: 'Fleet' },
-    { path: '/warehouses',         icon: Warehouse,       label: 'Warehouses' },
-    { path: '/users',              icon: Users,           label: 'Team' },
-    { path: '/messages',           icon: MessageSquare,   label: 'Messages' },
-    { path: '/organization',       icon: Settings,        label: 'Organization' },
+    { section: 'Operations', items: [
+      { icon: LayoutDashboard, label: 'Dashboard',        path: '/dashboard' },
+      { icon: Package,         label: 'Shipments',        path: '/shipments' },
+      { icon: ClipboardList,   label: 'Requests',         path: '/shipment-requests' },
+      { icon: Navigation,      label: 'Live Tracking',    path: '/live-tracking' },
+      { icon: Route,           label: 'Route Optimizer',  path: '/route-optimization' },
+    ]},
+    { section: 'Fleet & Assets', items: [
+      { icon: Truck,     label: 'Fleet',      path: '/fleet' },
+      { icon: Warehouse, label: 'Warehouses', path: '/warehouses' },
+    ]},
+    { section: 'Team', items: [
+      { icon: Users,        label: 'Team Members', path: '/users' },
+      { icon: MessageSquare,label: 'Messages',     path: '/messages' },
+      { icon: Building2,    label: 'Organization', path: '/organization' },
+    ]},
   ],
   manager: [
-    { path: '/dashboard',          icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/shipments',          icon: Package,         label: 'Shipments' },
-    { path: '/request-shipment',   icon: PlusCircle,      label: 'Request Shipment' },
-    { path: '/live-tracking',      icon: Navigation,      label: 'Live Map' },
-    { path: '/fleet',              icon: Truck,           label: 'Fleet' },
-    { path: '/messages',           icon: MessageSquare,   label: 'Messages' },
+    { section: 'Operations', items: [
+      { icon: LayoutDashboard, label: 'Dashboard',      path: '/dashboard' },
+      { icon: Package,         label: 'Shipments',      path: '/shipments' },
+      { icon: ClipboardList,   label: 'My Requests',    path: '/shipment-requests' },
+      { icon: Navigation,      label: 'Live Tracking',  path: '/live-tracking' },
+      { icon: Route,           label: 'Route Optimizer',path: '/route-optimization' },
+    ]},
+    { section: 'Communication', items: [
+      { icon: MessageSquare, label: 'Messages', path: '/messages' },
+    ]},
   ],
   fleet_manager: [
-    { path: '/dashboard',          icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/shipments',          icon: Package,         label: 'Shipments' },
-    { path: '/live-tracking',      icon: Navigation,      label: 'Live Map' },
-    { path: '/fleet',              icon: Truck,           label: 'Fleet' },
-    { path: '/messages',           icon: MessageSquare,   label: 'Messages' },
+    { section: 'Operations', items: [
+      { icon: LayoutDashboard, label: 'Dashboard',     path: '/dashboard' },
+      { icon: Package,         label: 'Shipments',     path: '/shipments' },
+      { icon: Navigation,      label: 'Live Tracking', path: '/live-tracking' },
+    ]},
+    { section: 'Fleet', items: [
+      { icon: Truck,         label: 'Fleet',      path: '/fleet' },
+      { icon: Warehouse,     label: 'Warehouses', path: '/warehouses' },
+      { icon: MessageSquare, label: 'Messages',   path: '/messages' },
+    ]},
   ],
   analyst: [
-    { path: '/dashboard',          icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/shipments',          icon: Package,         label: 'Shipments' },
-    { path: '/live-tracking',      icon: Navigation,      label: 'Live Map' },
+    { section: 'Operations', items: [
+      { icon: LayoutDashboard, label: 'Dashboard',      path: '/dashboard' },
+      { icon: Package,         label: 'Shipments',      path: '/shipments' },
+      { icon: Navigation,      label: 'Live Tracking',  path: '/live-tracking' },
+      { icon: Route,           label: 'Route Optimizer',path: '/route-optimization' },
+    ]},
+    { section: 'Communication', items: [
+      { icon: MessageSquare, label: 'Messages', path: '/messages' },
+    ]},
   ],
   driver: [
-    { path: '/dashboard',          icon: LayoutDashboard, label: 'My Dashboard' },
-    { path: '/driver-tracking',    icon: Navigation,      label: 'My Delivery' },
-    { path: '/messages',           icon: MessageSquare,   label: 'Messages' },
+    { section: 'My Delivery', items: [
+      { icon: LayoutDashboard, label: 'Dashboard',   path: '/dashboard' },
+      { icon: Navigation,      label: 'My GPS',      path: '/driver-tracking' },
+      { icon: Package,         label: 'Shipments',   path: '/shipments' },
+      { icon: MessageSquare,   label: 'Messages',    path: '/messages' },
+    ]},
   ],
 };
 
-const ROLE_COLORS = {
-  admin: 'role-admin', manager: 'role-manager', fleet_manager: 'role-fleet_manager',
-  analyst: 'role-analyst', driver: 'role-driver',
+const PAGE_TITLES = {
+  '/dashboard':          'Dashboard',
+  '/shipments':          'Shipments',
+  '/shipments/new':      'Create Shipment',
+  '/live-tracking':      'Live Tracking',
+  '/route-optimization': 'Route Optimizer',
+  '/fleet':              'Fleet Management',
+  '/warehouses':         'Warehouses',
+  '/users':              'Team Members',
+  '/messages':           'Messages',
+  '/organization':       'Organization',
+  '/shipment-requests':  'Shipment Requests',
+  '/request-shipment':   'Request Shipment',
+  '/driver-tracking':    'GPS Tracking',
+};
+
+const ROLE_LABELS = {
+  admin:        'Admin',
+  manager:      'Manager',
+  fleet_manager:'Fleet Manager',
+  analyst:      'Analyst',
+  driver:       'Driver',
 };
 
 export default function Layout({ children }) {
-  const { userProfile, logout } = useAuth();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const navigate = useNavigate();
+  const { userProfile, logout, role } = useAuth();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const [notifs, setNotifs]         = useState([]);
+  const [notifOpen, setNotifOpen]   = useState(false);
   const notifRef = useRef(null);
-
-  const role = userProfile?.role || 'analyst';
-  const filteredNav = NAV_CONFIG[role] || NAV_CONFIG.analyst;
-  const unreadNotifs = notifications.filter(n => !n.read).length;
 
   // Real-time notifications from Firestore
   useEffect(() => {
     if (!userProfile?.orgId) return;
-    const orgRef = collection(db, 'organizations', userProfile.orgId, 'notifications');
+    const userRole = userProfile.role;
     const q = query(
-      orgRef,
-      where('target_roles', 'array-contains', role),
+      collection(db, 'organizations', userProfile.orgId, 'notifications'),
+      where('read', '==', false),
       orderBy('created_at', 'desc'),
       limit(20)
     );
-    const unsub = onSnapshot(q, (snap) => {
-      setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    const unsub = onSnapshot(q, snap => {
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Filter by target_roles
+      const visible = all.filter(n =>
+        !n.target_roles ||
+        n.target_roles.length === 0 ||
+        n.target_roles.includes(userRole)
+      );
+      setNotifs(visible);
     }, () => {});
     return unsub;
-  }, [userProfile?.orgId, role]);
+  }, [userProfile?.orgId, userProfile?.role]);
 
-  // Close notif dropdown on outside click
+  // Close dropdown on outside click
   useEffect(() => {
-    const handler = (e) => {
+    const h = e => {
       if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
   }, []);
+
+  const markAllRead = async () => {
+    if (!userProfile?.orgId) return;
+    await Promise.all(
+      notifs.map(n =>
+        updateDoc(doc(db, 'organizations', userProfile.orgId, 'notifications', n.id), { read: true })
+      )
+    );
+    setNotifs([]);
+    setNotifOpen(false);
+  };
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
 
-  const getPageTitle = () => {
-    const path = window.location.pathname;
-    const item = filteredNav.find(n => n.path === path);
-    return item?.label || 'Supply Chain Intelligence';
-  };
+  const navSections = NAV[role || 'analyst'] || NAV.analyst;
 
-  const notifTypeStyle = (type) => {
-    if (type === 'risk' || type === 'alert') return { background: 'rgba(220,38,38,0.10)', color: '#dc2626' };
-    if (type === 'success') return { background: 'rgba(22,163,74,0.10)', color: '#16a34a' };
-    return { background: 'rgba(79,70,229,0.10)', color: '#4f46e5' };
-  };
+  const pageTitle = PAGE_TITLES[location.pathname] ||
+    (location.pathname.startsWith('/shipments/') ? 'Shipment Details' : 'Dashboard');
+
+  const initials = (userProfile?.displayName || userProfile?.email || 'U')
+    .split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
 
   return (
-    <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div className="app-shell">
       {/* ── Sidebar ── */}
       <aside className="sidebar">
-        <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <div className="logo-mark">R</div>
-            {!sidebarCollapsed && (
-              <span className="logo-text">Raga<span className="logo-accent">-V</span></span>
-            )}
+        {/* Brand */}
+        <div className="sidebar-brand">
+          <div className="sidebar-brand-mark">SE</div>
+          <div className="sidebar-brand-text">
+            <div className="sidebar-brand-name">SupplyEazy</div>
+            <div className="sidebar-brand-tagline">Intelligence Platform</div>
           </div>
-          <button className="sidebar-toggle" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label="Toggle sidebar">
-            {sidebarCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
-          </button>
         </div>
 
+        {/* User chip */}
+        <div className="sidebar-role-chip">
+          <div className="sidebar-role-avatar">{initials}</div>
+          <div className="sidebar-role-info">
+            <div className="sidebar-role-name">
+              {userProfile?.displayName || userProfile?.email?.split('@')[0] || 'User'}
+            </div>
+            <div className="sidebar-role-badge">
+              {ROLE_LABELS[role] || role || 'Member'}
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation */}
         <nav className="sidebar-nav">
-          {filteredNav.map(item => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                title={sidebarCollapsed ? item.label : undefined}
-              >
-                <Icon size={18} className="nav-icon" />
-                {!sidebarCollapsed && <span className="nav-label">{item.label}</span>}
-              </NavLink>
-            );
-          })}
+          {navSections.map(section => (
+            <div key={section.section}>
+              <div className="nav-section-label">{section.section}</div>
+              {section.items.map(item => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path ||
+                  (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`nav-item ${isActive ? 'active' : ''}`}
+                  >
+                    <Icon size={17} className="nav-icon" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
+        {/* Logout */}
         <div className="sidebar-footer">
-          <div className="user-info">
-            <div className="user-avatar">
-              {(userProfile?.displayName || userProfile?.email || '?')[0].toUpperCase()}
-            </div>
-            {!sidebarCollapsed && (
-              <div className="user-details">
-                <span className="user-name">{userProfile?.displayName || userProfile?.email}</span>
-                <span className="user-role">{role.replace('_', ' ')}</span>
-              </div>
-            )}
-          </div>
-          <button className="nav-item logout-btn" onClick={handleLogout} title="Logout">
-            <LogOut size={17} className="nav-icon" />
-            {!sidebarCollapsed && <span className="nav-label">Logout</span>}
+          <button className="sidebar-logout" onClick={handleLogout}>
+            <LogOut size={15} />
+            Sign Out
           </button>
         </div>
       </aside>
 
-      {/* ── Main Content ── */}
-      <main className="main-content">
-        {/* Top bar */}
-        <div className="top-bar">
-          <div className="top-bar-left">
-            <span className="top-bar-title">{getPageTitle()}</span>
-            <span className="top-bar-subtitle">
-              {userProfile?.displayName || userProfile?.email} · <span className={`role-badge ${ROLE_COLORS[role]}`}>{role.replace('_', ' ')}</span>
-            </span>
-          </div>
-          <div className="top-bar-right">
-            {/* Notification Bell */}
+      {/* ── Main area ── */}
+      <div className="main-area">
+        {/* Header */}
+        <header className="top-header">
+          <span className="header-title">{pageTitle}</span>
+
+          <div className="header-right">
+            {/* Notification bell */}
             <div style={{ position: 'relative' }} ref={notifRef}>
-              <button className="notif-bell-btn" onClick={() => setNotifOpen(!notifOpen)} aria-label="Notifications">
-                <Bell size={18} />
-                {unreadNotifs > 0 && (
-                  <span className="notif-badge">{unreadNotifs > 9 ? '9+' : unreadNotifs}</span>
+              <button className="notif-btn" onClick={() => setNotifOpen(!notifOpen)}>
+                <Bell size={17} />
+                {notifs.length > 0 && (
+                  <span className="notif-count">
+                    {notifs.length > 9 ? '9+' : notifs.length}
+                  </span>
                 )}
               </button>
+
               {notifOpen && (
                 <div className="notif-dropdown">
-                  <div className="notif-dropdown-header">
-                    <span>Notifications</span>
-                    {unreadNotifs > 0 && (
-                      <span className="badge badge-purple">{unreadNotifs} new</span>
+                  <div className="notif-header">
+                    <span className="notif-header-title">
+                      Notifications {notifs.length > 0 && `(${notifs.length})`}
+                    </span>
+                    {notifs.length > 0 && (
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={markAllRead}
+                        style={{ fontSize: '0.75rem', padding: '0.1875rem 0.5rem' }}
+                      >
+                        Mark all read
+                      </button>
                     )}
                   </div>
-                  <div className="notif-list">
-                    {notifications.length === 0 ? (
-                      <div className="notif-empty">No notifications yet</div>
-                    ) : notifications.map(n => (
-                      <div key={n.id} className={`notif-item ${!n.read ? 'unread' : ''}`}>
-                        <div className="notif-icon-wrap" style={notifTypeStyle(n.type)}>
-                          <Bell size={14} />
-                        </div>
-                        <div className="notif-body">
-                          <div className="notif-title">{n.title || 'Notification'}</div>
-                          <div className="notif-msg">{n.message}</div>
-                          <div className="notif-time">
-                            {n.created_at ? new Date(n.created_at?.toDate?.() || n.created_at).toLocaleTimeString() : ''}
+                  {notifs.length === 0 ? (
+                    <div className="notif-empty">No new notifications</div>
+                  ) : (
+                    notifs.slice(0, 8).map(n => (
+                      <div
+                        key={n.id}
+                        className="notif-item"
+                        onClick={() => {
+                          setNotifOpen(false);
+                          if (n.shipment_id) navigate(`/shipments/${n.shipment_id}`);
+                          else if (n.ref_id) navigate('/shipment-requests');
+                        }}
+                        style={{ cursor: n.shipment_id || n.ref_id ? 'pointer' : 'default' }}
+                      >
+                        <div className="notif-item-title">{n.title}</div>
+                        <div className="notif-item-msg">{n.message}</div>
+                        {n.created_at && (
+                          <div className="notif-item-time">
+                            {n.created_at.toDate?.()
+                              ? new Date(n.created_at.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                              : ''}
                           </div>
-                        </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                    ))
+                  )}
                 </div>
               )}
             </div>
+
+            {/* Admin quick-create */}
+            {role === 'admin' && (
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => navigate('/shipments/new')}
+              >
+                <Package size={14} /> New Shipment
+              </button>
+            )}
+            {role === 'manager' && (
+              <button
+                className="btn btn-sm"
+                style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac' }}
+                onClick={() => navigate('/request-shipment')}
+              >
+                <ClipboardList size={14} /> Request Shipment
+              </button>
+            )}
           </div>
-        </div>
+        </header>
 
         {/* Page content */}
-        <div className="content-body">
+        <main className="page-content">
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

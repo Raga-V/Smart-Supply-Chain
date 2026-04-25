@@ -20,30 +20,36 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          // Get custom claims for role/org
-          const token = await firebaseUser.getIdTokenResult();
+          // Force-refresh token on load to get latest custom claims
+          const token = await firebaseUser.getIdTokenResult(true);
           const rawToken = await firebaseUser.getIdToken();
           window.__fbToken = rawToken;
-          // Helper: always get a fresh token from console via getFbToken()
           window.getFbToken = async () => {
             const t = await firebaseUser.getIdToken(true);
             window.__fbToken = t;
-            console.log('Token copied! Length:', t.length);
-            copy(t);
+            console.log('Fresh token length:', t.length);
             return t;
           };
           setUser(firebaseUser);
           setUserProfile({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
+            uid:         firebaseUser.uid,
+            email:       firebaseUser.email,
             displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-            orgId: token.claims.org_id || null,
-            role: token.claims.role || null,
+            photoURL:    firebaseUser.photoURL,
+            orgId:       token.claims.org_id || null,
+            role:        token.claims.role    || null,
           });
         } catch (err) {
-          console.error('Error getting token:', err);
+          console.error('Token error:', err);
           setUser(firebaseUser);
+          setUserProfile({
+            uid:         firebaseUser.uid,
+            email:       firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL:    firebaseUser.photoURL,
+            orgId:       null,
+            role:        null,
+          });
         }
       } else {
         window.__fbToken = null;
@@ -54,6 +60,7 @@ export function AuthProvider({ children }) {
       setLoading(false);
     });
     return unsubscribe;
+
   }, []);
 
   const login = async (email, password) => {

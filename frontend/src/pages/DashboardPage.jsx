@@ -44,7 +44,7 @@ function AdminDashboard({ stats, shipments, alerts, navigate }) {
           <p>Full visibility and control over your entire supply chain operation.</p>
         </div>
         <div className="role-welcome-actions">
-          <button className="btn btn-outline-white btn-sm" onClick={() => navigate('/shipment-requests')}>
+          <button className="btn btn-sm" style={{background:'rgba(255,255,255,0.12)',color:'#fff',border:'1px solid rgba(255,255,255,0.25)'}} onClick={() => navigate('/shipment-requests')}>
             <ClipboardList size={14}/> View Requests
           </button>
           <button className="btn btn-secondary btn-sm" onClick={() => navigate('/shipments/new')} style={{background:'white',color:'var(--accent-primary)'}}>

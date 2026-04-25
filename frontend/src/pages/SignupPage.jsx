@@ -3,256 +3,407 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../services/api';
 import {
-  Building2, UserPlus, ChevronRight, CheckCircle2,
-  Zap, Navigation, Shield, ArrowLeft, Eye, EyeOff,
-  Mail, Lock, User, Globe, Briefcase
+  Building2, User, Mail, Lock, Globe, Briefcase,
+  ChevronRight, ArrowLeft, CheckCircle2, Eye, EyeOff,
+  UserPlus, Shield, Zap, Navigation
 } from 'lucide-react';
 import './AuthPages.css';
 
 const INDUSTRIES = [
-  { value: 'logistics',      label: 'Logistics & Transport' },
-  { value: 'manufacturing',  label: 'Manufacturing' },
-  { value: 'retail',         label: 'Retail & E-commerce' },
-  { value: 'pharma',         label: 'Pharmaceuticals' },
-  { value: 'food',           label: 'Food & Beverage' },
-  { value: 'automotive',     label: 'Automotive' },
-  { value: 'tech',           label: 'Technology' },
-  { value: 'other',          label: 'Other' },
+  { value: 'logistics',     label: 'Logistics & Transport' },
+  { value: 'manufacturing', label: 'Manufacturing' },
+  { value: 'retail',        label: 'Retail & E-commerce' },
+  { value: 'pharma',        label: 'Pharmaceuticals' },
+  { value: 'food',          label: 'Food & Beverage' },
+  { value: 'automotive',    label: 'Automotive' },
+  { value: 'tech',          label: 'Technology' },
+  { value: 'other',         label: 'Other' },
 ];
 
-const STEPS = [
-  { num: 1, label: 'Organization' },
-  { num: 2, label: 'Admin Account' },
-  { num: 3, label: 'Confirmation' },
+const FEATURES = [
+  { icon: Shield,     text: 'You become the Admin with full control' },
+  { icon: UserPlus,   text: 'Invite your team and assign roles easily' },
+  { icon: Navigation, text: 'Get live GPS tracking and route optimization' },
+  { icon: Zap,        text: 'AI-powered risk prediction from day one' },
 ];
 
 export default function SignupPage() {
+  const { signup } = useAuth();
+  const navigate   = useNavigate();
+
   const [step, setStep]     = useState(1);
-  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState('');
-  const [form, setForm] = useState({
-    orgName: '', industry: 'logistics', country: '', website: '',
-    adminName: '', adminEmail: '', password: '', confirmPw: '',
-  });
+  const [showPw, setShowPw] = useState(false);
 
-  const { signup } = useAuth();
-  const navigate = useNavigate();
+  // Form fields
+  const [orgName,    setOrgName]    = useState('');
+  const [industry,   setIndustry]   = useState('logistics');
+  const [country,    setCountry]    = useState('');
+  const [adminName,  setAdminName]  = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [password,   setPassword]   = useState('');
+  const [confirmPw,  setConfirmPw]  = useState('');
 
-  const update = (k, v) => setForm(p => ({ ...p, [k]: v }));
-
-  const goNext = () => {
+  // ── Step navigation ──────────────────────────────────────
+  const goToStep2 = () => {
     setError('');
-    if (step === 1 && !form.orgName) { setError('Organization name is required'); return; }
-    if (step === 2) {
-      if (!form.adminName || !form.adminEmail || !form.password) { setError('All fields are required'); return; }
-      if (form.password.length < 6) { setError('Password must be at least 6 characters'); return; }
-      if (form.password !== form.confirmPw) { setError('Passwords do not match'); return; }
-    }
-    setStep(s => s + 1);
+    if (!orgName.trim()) { setError('Organization name is required.'); return; }
+    setStep(2);
   };
 
+  const goToStep3 = () => {
+    setError('');
+    if (!adminName.trim())  { setError('Your name is required.'); return; }
+    if (!adminEmail.trim()) { setError('Email address is required.'); return; }
+    if (!/\S+@\S+\.\S+/.test(adminEmail)) { setError('Please enter a valid email address.'); return; }
+    if (!password)          { setError('Password is required.'); return; }
+    if (password.length < 6){ setError('Password must be at least 6 characters.'); return; }
+    if (password !== confirmPw) { setError('Passwords do not match.'); return; }
+    setStep(3);
+  };
+
+  // ── Final submit ─────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    setError(''); setLoading(true);
     try {
-      // 1. Create Firebase user
-      await signup(form.adminEmail, form.password, form.adminName);
-      // 2. Create org + set admin claims via backend
+      // 1 — Create Firebase user
+      await signup(adminEmail.trim(), password, adminName.trim());
+
+      // 2 — Create org + assign admin role via backend
       await authAPI.signup({
-        name: form.orgName,
-        industry: form.industry,
-        country: form.country,
-        admin_email: form.adminEmail,
-        admin_name: form.adminName,
+        name:        orgName.trim(),
+        industry,
+        country:     country.trim() || 'Not specified',
+        admin_email: adminEmail.trim(),
+        admin_name:  adminName.trim(),
       });
+
+      // 3 — Force token refresh to pick up custom claims (org_id, role=admin)
+      const { auth } = await import('../config/firebase');
+      if (auth.currentUser) {
+        await auth.currentUser.getIdToken(true);
+      }
+
+      // 4 — Redirect to dashboard
       navigate('/dashboard');
     } catch (err) {
-      const msg = err.response?.data?.detail || err.message?.replace('Firebase: ', '') || 'Setup failed';
-      setError(msg.replace(' (auth/email-already-in-use).', ' — this email is already registered. Try signing in.'));
-    } finally {
-      setLoading(false);
-    }
+      const raw = err.response?.data?.detail || err.message || '';
+
+      // Firebase errors from step 1
+      if (raw.includes('email-already-in-use')) {
+        setError('An account with this email already exists. Please sign in instead.');
+        setStep(2); return;
+      } else if (raw.includes('weak-password')) {
+        setError('Password is too weak. Use at least 6 characters.');
+        setStep(2); return;
+      } else if (raw.includes('invalid-email')) {
+        setError('Please enter a valid email address.');
+        setStep(2); return;
+      }
+
+      // If Firebase user was created but backend was unreachable (network error)
+      // — redirect anyway; role will sync once backend is reachable
+      if (err.code === 'ERR_NETWORK' || err.message?.includes('ERR_CONNECTION_REFUSED')) {
+        console.warn('Backend offline — org created in Firebase only. Role will sync on next login.');
+        navigate('/dashboard');
+        return;
+      }
+
+      setError('Setup failed: ' + (raw.length < 120 ? raw : 'Please try again.'));
+    } finally { setLoading(false); }
   };
 
-  const FEATURES = [
-    { icon: Navigation, text: 'AI-powered multi-leg route optimization' },
-    { icon: Shield,     text: 'Real-time risk prediction & intelligent alerts' },
-    { icon: Zap,        text: 'Live GPS driver tracking worldwide' },
-  ];
+
+  const industryLabel = INDUSTRIES.find(i => i.value === industry)?.label || industry;
 
   return (
     <div className="auth-page">
       <div className="auth-split">
-        {/* Left branding */}
+
+        {/* ── Left Panel ── */}
         <div className="auth-left">
           <div className="auth-brand">
-            <div className="auth-brand-mark">R</div>
-            <span className="auth-brand-name">Raga<span>-V</span></span>
+            <div className="auth-brand-mark">SE</div>
+            <div>
+              <div className="auth-brand-name">SupplyEazy</div>
+              <div className="auth-brand-tagline">Supply Chain Intelligence</div>
+            </div>
           </div>
+
           <h1 className="auth-left-title">
-            Build your intelligent<br />logistics organization.
+            Set up your<br />organization today.
           </h1>
           <p className="auth-left-sub">
-            You'll be the Admin — invite your team, create shipments, and get full AI-powered control of your supply chain.
+            You'll be the Admin. Invite your team, assign roles, and get complete supply chain visibility in minutes.
           </p>
+
           <div className="auth-feature-list">
             {FEATURES.map(f => {
               const Icon = f.icon;
               return (
                 <div key={f.text} className="auth-feature-item">
-                  <div className="auth-feature-icon"><Icon size={14} /></div>
-                  {f.text}
+                  <div className="auth-feature-icon"><Icon size={15} /></div>
+                  <span>{f.text}</span>
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Right form */}
+        {/* ── Right Form ── */}
         <div className="auth-right">
           <div className="auth-card" style={{ maxWidth: 500 }}>
+
             <div className="auth-card-header">
               <div className="auth-card-title">Create Organization</div>
-              <div className="auth-card-subtitle">You'll become the organization Admin</div>
+              <div className="auth-card-subtitle">
+                {step === 1 && 'Step 1 of 3 — Organization details'}
+                {step === 2 && 'Step 2 of 3 — Your admin account'}
+                {step === 3 && 'Step 3 of 3 — Review and confirm'}
+              </div>
             </div>
 
             {/* Step indicator */}
-            <div className="signup-steps">
-              {STEPS.map((s, i) => (
-                <>
-                  <div key={s.num} className={`signup-step ${step === s.num ? 'active' : step > s.num ? 'done' : ''}`}>
+            <div className="signup-steps" style={{ marginBottom: '1.5rem' }}>
+              {['Organization', 'Admin Account', 'Confirm'].map((label, i) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', flex: i < 2 ? 1 : 0 }}>
+                  <div className={`signup-step ${step === i + 1 ? 'active' : step > i + 1 ? 'done' : ''}`}>
                     <div className="step-num">
-                      {step > s.num ? <CheckCircle2 size={12} /> : s.num}
+                      {step > i + 1 ? <CheckCircle2 size={13} /> : i + 1}
                     </div>
-                    <span>{s.label}</span>
+                    <span className="step-label">{label}</span>
                   </div>
-                  {i < STEPS.length - 1 && <div key={`c${i}`} className="step-connector" />}
-                </>
+                  {i < 2 && (
+                    <div className={`step-connector ${step > i + 1 ? 'done' : ''}`} />
+                  )}
+                </div>
               ))}
             </div>
 
-            <form className="auth-form" onSubmit={handleSubmit}>
-              {error && <div className="auth-error">{error}</div>}
+            {error && <div className="auth-error" style={{ marginBottom: '1rem' }}>{error}</div>}
 
-              {/* Step 1: Organization */}
+            <form onSubmit={handleSubmit} noValidate>
+
+              {/* ── Step 1: Organization ── */}
               {step === 1 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <div className="form-group">
-                    <label className="form-label">Organization Name *</label>
+                    <label className="form-label" htmlFor="org-name">
+                      Organization Name *
+                    </label>
                     <div className="input-icon-wrap">
                       <Building2 size={15} className="input-icon" />
-                      <input className="form-input" value={form.orgName} onChange={e => update('orgName', e.target.value)}
-                        placeholder="Acme Logistics Pvt. Ltd." required />
+                      <input
+                        id="org-name"
+                        className="form-input"
+                        type="text"
+                        value={orgName}
+                        onChange={e => setOrgName(e.target.value)}
+                        placeholder="e.g. Acme Logistics Pvt. Ltd."
+                        autoFocus
+                      />
                     </div>
                   </div>
+
                   <div className="auth-form-row">
                     <div className="form-group">
-                      <label className="form-label">Industry</label>
+                      <label className="form-label" htmlFor="industry">Industry</label>
                       <div className="input-icon-wrap">
                         <Briefcase size={15} className="input-icon" />
-                        <select className="form-select" value={form.industry} onChange={e => update('industry', e.target.value)}>
-                          {INDUSTRIES.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
+                        <select
+                          id="industry"
+                          className="form-select"
+                          value={industry}
+                          onChange={e => setIndustry(e.target.value)}
+                          style={{ paddingLeft: '2.5rem' }}
+                        >
+                          {INDUSTRIES.map(i => (
+                            <option key={i.value} value={i.value}>{i.label}</option>
+                          ))}
                         </select>
                       </div>
                     </div>
+
                     <div className="form-group">
-                      <label className="form-label">Country</label>
+                      <label className="form-label" htmlFor="country">Country</label>
                       <div className="input-icon-wrap">
                         <Globe size={15} className="input-icon" />
-                        <input className="form-input" value={form.country} onChange={e => update('country', e.target.value)} placeholder="India" />
+                        <input
+                          id="country"
+                          className="form-input"
+                          type="text"
+                          value={country}
+                          onChange={e => setCountry(e.target.value)}
+                          placeholder="e.g. India"
+                        />
                       </div>
                     </div>
                   </div>
-                  <button type="button" className="btn btn-primary btn-lg" style={{ width: '100%' }} onClick={goNext}>
+
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-lg"
+                    style={{ width: '100%', marginTop: '0.25rem' }}
+                    onClick={goToStep2}
+                  >
                     Continue <ChevronRight size={16} />
                   </button>
                 </div>
               )}
 
-              {/* Step 2: Admin account */}
+              {/* ── Step 2: Admin Account ── */}
               {step === 2 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <div className="form-group">
-                    <label className="form-label">Your Full Name *</label>
+                    <label className="form-label" htmlFor="admin-name">Your Full Name *</label>
                     <div className="input-icon-wrap">
                       <User size={15} className="input-icon" />
-                      <input className="form-input" value={form.adminName} onChange={e => update('adminName', e.target.value)} placeholder="Jane Doe" required />
+                      <input
+                        id="admin-name"
+                        className="form-input"
+                        type="text"
+                        value={adminName}
+                        onChange={e => setAdminName(e.target.value)}
+                        placeholder="Jane Doe"
+                        autoFocus
+                      />
                     </div>
                   </div>
+
                   <div className="form-group">
-                    <label className="form-label">Email Address *</label>
+                    <label className="form-label" htmlFor="admin-email">Email Address *</label>
                     <div className="input-icon-wrap">
                       <Mail size={15} className="input-icon" />
-                      <input className="form-input" type="email" value={form.adminEmail} onChange={e => update('adminEmail', e.target.value)} placeholder="you@company.com" required />
+                      <input
+                        id="admin-email"
+                        className="form-input"
+                        type="email"
+                        value={adminEmail}
+                        onChange={e => setAdminEmail(e.target.value)}
+                        placeholder="you@company.com"
+                        autoComplete="email"
+                      />
                     </div>
                   </div>
+
                   <div className="auth-form-row">
                     <div className="form-group">
-                      <label className="form-label">Password *</label>
+                      <label className="form-label" htmlFor="pw">Password *</label>
                       <div className="input-icon-wrap" style={{ position: 'relative' }}>
                         <Lock size={15} className="input-icon" />
-                        <input className="form-input" type={showPw ? 'text' : 'password'} value={form.password}
-                          onChange={e => update('password', e.target.value)} placeholder="Min 6 chars" required style={{ paddingRight: '2.5rem' }} />
-                        <button type="button" tabIndex={-1} onClick={() => setShowPw(!showPw)}
-                          style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0 }}>
+                        <input
+                          id="pw"
+                          className="form-input"
+                          type={showPw ? 'text' : 'password'}
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                          placeholder="Min. 6 characters"
+                          style={{ paddingRight: '2.75rem' }}
+                        />
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          onClick={() => setShowPw(!showPw)}
+                          style={{
+                            position: 'absolute', right: '0.75rem', top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none', border: 'none',
+                            cursor: 'pointer', color: '#94a3b8', padding: 0,
+                          }}
+                        >
                           {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
                         </button>
                       </div>
                     </div>
+
                     <div className="form-group">
-                      <label className="form-label">Confirm Password *</label>
+                      <label className="form-label" htmlFor="confirm-pw">Confirm Password *</label>
                       <div className="input-icon-wrap">
                         <Lock size={15} className="input-icon" />
-                        <input className="form-input" type="password" value={form.confirmPw}
-                          onChange={e => update('confirmPw', e.target.value)} placeholder="Repeat password" required />
+                        <input
+                          id="confirm-pw"
+                          className="form-input"
+                          type="password"
+                          value={confirmPw}
+                          onChange={e => setConfirmPw(e.target.value)}
+                          placeholder="Repeat password"
+                        />
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button type="button" className="btn btn-secondary btn-lg" onClick={() => setStep(1)} style={{ flex: 1 }}>
+
+                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-lg"
+                      style={{ flex: 1 }}
+                      onClick={() => { setError(''); setStep(1); }}
+                    >
                       <ArrowLeft size={15} /> Back
                     </button>
-                    <button type="button" className="btn btn-primary btn-lg" onClick={goNext} style={{ flex: 2 }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-lg"
+                      style={{ flex: 2 }}
+                      onClick={goToStep3}
+                    >
                       Review <ChevronRight size={16} />
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Step 3: Confirm & Submit */}
+              {/* ── Step 3: Confirm ── */}
               {step === 3 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', padding: '1.25rem', border: '1px solid var(--border-color-light)' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Review Details</div>
+                  <div className="review-box">
+                    <div className="review-box-title">Review your details</div>
                     {[
-                      { label: 'Organization', value: form.orgName },
-                      { label: 'Industry', value: INDUSTRIES.find(i => i.value === form.industry)?.label },
-                      { label: 'Country', value: form.country || '—' },
-                      { label: 'Admin Name', value: form.adminName },
-                      { label: 'Admin Email', value: form.adminEmail },
-                      { label: 'Your Role', value: 'Admin (full access)' },
-                    ].map(r => (
-                      <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', paddingBottom: '0.5rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color-light)' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>{r.label}</span>
-                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{r.value}</span>
+                      { label: 'Organization', value: orgName },
+                      { label: 'Industry',     value: industryLabel },
+                      { label: 'Country',      value: country || 'Not specified' },
+                      { label: 'Admin Name',   value: adminName },
+                      { label: 'Admin Email',  value: adminEmail },
+                      { label: 'Your Role',    value: 'Admin (full access)' },
+                    ].map(row => (
+                      <div key={row.label} className="review-row">
+                        <span className="review-row-label">{row.label}</span>
+                        <span className="review-row-value">{row.value}</span>
                       </div>
                     ))}
                   </div>
+
                   <div className="alert-banner alert-banner-info" style={{ fontSize: '0.8125rem' }}>
-                    <UserPlus size={14} />
-                    After setup, you can invite team members from the Users section. They'll receive an email with login credentials.
+                    <UserPlus size={14} style={{ flexShrink: 0 }} />
+                    <span>
+                      After setup, invite team members from the <strong>Team</strong> page.
+                      They'll receive a link to set their password and log in.
+                    </span>
                   </div>
+
                   <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button type="button" className="btn btn-secondary btn-lg" onClick={() => setStep(2)} style={{ flex: 1 }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-lg"
+                      style={{ flex: 1 }}
+                      onClick={() => { setError(''); setStep(2); }}
+                      disabled={loading}
+                    >
                       <ArrowLeft size={15} /> Back
                     </button>
-                    <button type="submit" className="btn btn-primary btn-lg" disabled={loading} style={{ flex: 2 }}>
-                      {loading
-                        ? <span className="loader-spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
-                        : <><UserPlus size={16} /> Create Organization</>
-                      }
+                    <button
+                      type="submit"
+                      className="btn btn-primary btn-lg"
+                      style={{ flex: 2 }}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <><span className="loader-spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> Setting up…</>
+                      ) : (
+                        <><UserPlus size={16} /> Create Organization</>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -260,13 +411,14 @@ export default function SignupPage() {
             </form>
 
             <p className="auth-footer-text">
-              Already have an organization? <Link to="/login">Sign In</Link>
+              Already have an account? <Link to="/login">Sign In</Link>
             </p>
-            <p className="auth-footer-text" style={{ marginTop: '0.25rem' }}>
-              <Link to="/">← Back to home</Link>
+            <p className="auth-footer-text" style={{ marginTop: '0.375rem' }}>
+              <Link to="/" style={{ color: '#94a3b8' }}>← Back to home</Link>
             </p>
           </div>
         </div>
+
       </div>
     </div>
   );

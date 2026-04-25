@@ -68,8 +68,8 @@ export default function LandingPage() {
       <nav className="landing-nav">
         <div className="landing-nav-inner">
           <div className="landing-logo">
-            <div className="landing-logo-mark">R</div>
-            <span className="landing-logo-text">Raga<span className="landing-logo-accent">-V</span></span>
+            <div className="landing-logo-mark">SE</div>
+            <span className="landing-logo-text">Supply<span className="landing-logo-accent">Eazy</span></span>
           </div>
           <div className="landing-nav-actions">
             <button className="btn btn-ghost" onClick={() => navigate('/login')}>Sign In</button>
@@ -98,7 +98,7 @@ export default function LandingPage() {
             <span className="hero-accent">Zero surprises.</span>
           </h1>
           <p className="hero-subtitle">
-            Raga-V is your intelligent logistics control tower — predicting risks before they happen,
+            SupplyEazy is your intelligent logistics control tower — predicting risks before they happen,
             optimizing routes in real time, and giving every team member the visibility they need.
           </p>
           <div className="hero-actions">
@@ -242,11 +242,11 @@ export default function LandingPage() {
       {/* ── Footer ── */}
       <footer className="landing-footer">
         <div className="landing-logo" style={{ marginBottom: '0.5rem' }}>
-          <div className="landing-logo-mark" style={{ width: 28, height: 28, fontSize: '0.75rem' }}>R</div>
-          <span className="landing-logo-text" style={{ fontSize: '0.875rem' }}>Raga<span className="landing-logo-accent">-V</span></span>
+          <div className="landing-logo-mark" style={{ width: 28, height: 28, fontSize: '0.75rem' }}>SE</div>
+          <span className="landing-logo-text" style={{ fontSize: '0.875rem' }}>Supply<span className="landing-logo-accent">Eazy</span></span>
         </div>
         <p style={{ fontSize: '0.8125rem', color: '#94a3b8', margin: 0 }}>
-          © 2026 Raga-V Supply Chain Intelligence. Built for Google Solution Challenge.
+          © 2026 SupplyEazy. Built for Google Solution Challenge.
         </p>
       </footer>
     </div>
