@@ -7,15 +7,12 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { routeAPI, warehouseAPI } from '../services/api';
 import LocationSearchInput from '../components/LocationSearchInput';
-import { LoadScript, GoogleMap, DirectionsRenderer, Marker, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, DirectionsRenderer, Marker } from '@react-google-maps/api';
 import {
   Route, Zap, MapPin, Shield, Clock, TrendingUp, Package,
   ArrowRight, RefreshCw, Truck, Train, Ship, Plane, ChevronDown, ChevronUp
 } from 'lucide-react';
 import './CreateShipmentPage.css';
-
-const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-const LIBS = ['places'];
 
 const MODES = [
   {value:'truck',label:'Truck',icon:'🚛'},{value:'rail',label:'Rail',icon:'🚂'},
@@ -108,8 +105,7 @@ export default function RouteOptimizationPage() {
     : { lat: 20.5937, lng: 78.9629 };
 
   return (
-    <LoadScript googleMapsApiKey={MAPS_KEY} libraries={LIBS} loadingElement={<div/>}>
-      <div className="route-optimization-page animate-fade-in">
+    <div className="route-optimization-page animate-fade-in">
         <div className="page-header">
           <h1><Route size={22} className="icon"/>Optimized Route Prediction</h1>
           <span style={{fontSize:'0.8125rem',color:'var(--text-secondary)'}}>AI-powered — up to 5 routes ranked by risk & distance</span>
@@ -291,6 +287,5 @@ export default function RouteOptimizationPage() {
           </>
         )}
       </div>
-    </LoadScript>
-  );
-}
+    );
+  }

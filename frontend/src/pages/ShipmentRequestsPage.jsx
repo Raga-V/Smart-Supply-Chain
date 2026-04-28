@@ -1,11 +1,14 @@
 /**
  * ShipmentRequestsPage — Admin sees all pending requests; Manager sees their own.
  * Admin can approve, request modification, or reject.
+ * Uses Firestore onSnapshot for real-time updates.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { shipmentRequestAPI } from '../services/api';
+import { db } from '../config/firebase';
+import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import { ClipboardList, CheckCircle, XCircle, Edit, Clock, RefreshCw, MapPin, Package } from 'lucide-react';
 
 const STATUS_STYLES = {
@@ -25,8 +28,43 @@ export default function ShipmentRequestsPage() {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
+  const unsubRef = useRef(null);
 
-  const load = async () => {
+  // Real-time Firestore listener for shipment requests
+  useEffect(() => {
+    if (!userProfile?.orgId) { setLoading(false); return; }
+
+    const constraints = [where('org_id', '==', userProfile.orgId)];
+    // Managers only see their own requests
+    if (userProfile.role === 'manager') {
+      constraints.push(where('requested_by', '==', userProfile.uid));
+    }
+
+    const q = query(
+      collection(db, 'shipment_requests'),
+      ...constraints,
+      limit(100)
+    );
+
+    unsubRef.current = onSnapshot(q, snap => {
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Sort by created_at descending
+      docs.sort((a, b) => {
+        const aTime = a.created_at?.toDate?.() || new Date(a.created_at || 0);
+        const bTime = b.created_at?.toDate?.() || new Date(b.created_at || 0);
+        return bTime - aTime;
+      });
+      setRequests(docs);
+      setLoading(false);
+    }, () => {
+      // Fallback to REST API
+      loadViaRest();
+    });
+
+    return () => unsubRef.current?.();
+  }, [userProfile?.orgId, userProfile?.uid, userProfile?.role]);
+
+  const loadViaRest = async () => {
     setLoading(true);
     try {
       const res = await shipmentRequestAPI.list();
@@ -36,8 +74,6 @@ export default function ShipmentRequestsPage() {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, []);
-
   const filtered = requests.filter(r => filter === 'all' || r.status === filter);
 
   const handleReview = async () => {
@@ -46,7 +82,7 @@ export default function ShipmentRequestsPage() {
     try {
       await shipmentRequestAPI.review(reviewId, reviewForm);
       setReviewId(null);
-      await load();
+      // onSnapshot will auto-update the list
     } catch(err) {
       setError(err.response?.data?.detail || 'Failed');
     } finally { setReviewLoading(false); }
@@ -56,11 +92,13 @@ export default function ShipmentRequestsPage() {
     <div className="animate-fade-in" style={{display:'flex',flexDirection:'column',gap:'1.25rem'}}>
       <div className="page-header">
         <h1><ClipboardList size={22} className="icon"/>Shipment Requests</h1>
-        {!isAdmin && (
-          <button className="btn btn-primary" onClick={()=>navigate('/request-shipment')}>
-            + New Request
-          </button>
-        )}
+        <div style={{display:'flex',gap:'0.5rem'}}>
+          {!isAdmin && (
+            <button className="btn btn-primary" onClick={()=>navigate('/request-shipment')}>
+              + New Request
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter chips */}
@@ -70,7 +108,13 @@ export default function ShipmentRequestsPage() {
             {f==='all'?`All (${requests.length})`:STATUS_STYLES[f]?.label} ({f==='all'?requests.length:requests.filter(r=>r.status===f).length})
           </button>
         ))}
-        <button className="btn-icon" onClick={load}><RefreshCw size={15}/></button>
+        <button className="btn-icon" onClick={loadViaRest} title="Force refresh"><RefreshCw size={15}/></button>
+      </div>
+
+      {/* Live indicator */}
+      <div style={{display:'flex',alignItems:'center',gap:'0.375rem',fontSize:'0.6875rem',color:'var(--risk-low)'}}>
+        <span style={{width:6,height:6,borderRadius:'50%',background:'var(--risk-low)',animation:'pulse 1.5s infinite',display:'inline-block'}}/>
+        Real-time updates active
       </div>
 
       {loading ? (

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { shipmentAPI, riskAPI, streamingAPI } from '../services/api';
+import { shipmentAPI, riskAPI, streamingAPI, orgAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import { db } from '../config/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import {
   ArrowLeft, MapPin, Package, Truck, Train, Ship, Plane,
   Shield, RefreshCw, Send, Clock, CheckCircle, AlertTriangle,
@@ -26,6 +27,10 @@ export default function ShipmentDetailPage() {
   const [simulationLoading, setSimulationLoading] = useState(false);
   const [error, setError] = useState('');
   const [showTrack, setShowTrack] = useState(false);
+  const [drivers, setDrivers] = useState([]);
+  const [assigningDriver, setAssigningDriver] = useState(false);
+  const { userProfile, isAdmin } = useAuth();
+  const canManage = isAdmin || userProfile?.role === 'admin' || userProfile?.role === 'manager';
 
   // ── Firestore real-time listener for this shipment ────────
   useEffect(() => {
@@ -41,7 +46,7 @@ export default function ShipmentDetailPage() {
       if (snap.exists()) {
         setShipment(prev => ({ ...(prev || {}), id: snap.id, ...snap.data() }));
       }
-    }, () => {});
+    }, () => { });
 
     return () => unsub();
   }, [id]);
@@ -49,8 +54,13 @@ export default function ShipmentDetailPage() {
   // Load GPS track and events
   useEffect(() => {
     if (!id) return;
-    shipmentAPI.getGpsTrack(id, 50).then(r => setGpsTrack(r.data.track || [])).catch(() => {});
-    shipmentAPI.getEvents(id).then(r => setEvents(r.data.events || [])).catch(() => {});
+    shipmentAPI.getGpsTrack(id, 50).then(r => setGpsTrack(r.data.track || [])).catch(() => { });
+    shipmentAPI.getEvents(id).then(r => setEvents(r.data.events || [])).catch(() => { });
+    // Load drivers for assignment
+    orgAPI.listUsers().then(r => {
+      const allUsers = r.data.users || [];
+      setDrivers(allUsers.filter(u => u.role === 'driver'));
+    }).catch(() => { });
   }, [id]);
 
   const handleEvaluateRisk = async () => {
@@ -300,6 +310,84 @@ export default function ShipmentDetailPage() {
         </div>
       </div>
 
+      {/* Driver Assignment Card */}
+      {canManage && (
+        <div className="glass-card" style={{ marginBottom: 'var(--space-lg)' }}>
+          <div className="panel-header">
+            <h3><User size={18} className="icon" /> Driver Assignment</h3>
+          </div>
+          {shipment.assigned_driver_name ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #15803d, #22c55e)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'white', fontWeight: 700, fontSize: '0.875rem',
+                }}>
+                  {(shipment.assigned_driver_name || '?')[0].toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem' }}>
+                    {shipment.assigned_driver_name}
+                  </div>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>Assigned Driver</div>
+                </div>
+              </div>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={async () => {
+                  setAssigningDriver(true);
+                  try {
+                    await shipmentAPI.update(id, { assigned_driver_id: null, assigned_driver_name: null, assigned_drivers: {} });
+                  } catch { }
+                  setAssigningDriver(false);
+                }}
+                disabled={assigningDriver}
+              >
+                Unassign
+              </button>
+            </div>
+          ) : (
+            <div>
+              {drivers.length === 0 ? (
+                <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1rem' }}>
+                  No drivers available. Invite a driver from the Team Members page.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Assign a driver to this shipment</label>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {drivers.map(d => (
+                      <button
+                        key={d.uid}
+                        className="btn btn-sm btn-secondary"
+                        style={{ fontSize: '0.75rem' }}
+                        disabled={assigningDriver}
+                        onClick={async () => {
+                          setAssigningDriver(true);
+                          try {
+                            const driverName = d.display_name || d.email.split('@')[0];
+                            await shipmentAPI.update(id, {
+                              assigned_driver_id: d.uid,
+                              assigned_driver_name: driverName,
+                              assigned_drivers: { leg_1: d.uid },
+                            });
+                          } catch { }
+                          setAssigningDriver(false);
+                        }}
+                      >
+                        <User size={11} /> {d.display_name || d.email.split('@')[0]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )
+      }
       {/* Events Timeline */}
       {events.length > 0 && (
         <div className="glass-card" style={{ marginBottom: 'var(--space-lg)' }}>

@@ -243,3 +243,104 @@
   .mode-selector { grid-template-columns: repeat(2, 1fr); }
   .wizard-label { display: none; }
 }
+
+/* ── Route Options List (Step 4) ─────────────────────────────── */
+.route-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.route-option-card {
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color-light);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+.route-option-card:hover  { border-color: var(--accent-primary-light); box-shadow: var(--shadow-card-hover); transform: translateY(-1px); }
+.route-option-card.selected { border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(79,70,229,0.10); background: rgba(79,70,229,0.03); }
+
+.route-option-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.route-option-rank {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-color-light);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: 800;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+.route-option-rank.rank-active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.15);
+}
+
+.route-option-name { font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
+.route-option-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+.route-option-stats {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.route-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color-light);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+}
+
+.route-highlights {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  margin-top: 0.625rem;
+}
+.route-highlight-tag {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--accent-primary);
+  background: rgba(79,70,229,0.07);
+  border: 1px solid rgba(79,70,229,0.15);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+/* ── Custom Route Override ───────────────────────────────────── */
+.custom-route-box {
+  background: #fffbeb;
+  border: 1.5px dashed #fcd34d;
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  margin-top: 0.75rem;
+}
+.custom-route-box .form-label {
+  color: #92400e;
+}
+.custom-route-box .form-textarea {
+  border-color: #fcd34d;
+  background: #fff;
+}
+.custom-route-box .form-textarea:focus {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.10);
+}
+

@@ -1,12 +1,14 @@
 import { lazy, Suspense, useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { LoadScript } from '@react-google-maps/api';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/layout/Layout';
 
 // Eager
-import LandingPage from './pages/LandingPage';
-import LoginPage   from './pages/LoginPage';
-import SignupPage  from './pages/SignupPage';
+import LandingPage      from './pages/LandingPage';
+import LoginPage        from './pages/LoginPage';
+import SignupPage       from './pages/SignupPage';
+import SetPasswordPage  from './pages/SetPasswordPage';
 
 // Lazy-loaded pages
 const DashboardPage        = lazy(() => import('./pages/DashboardPage'));
@@ -23,6 +25,11 @@ const RouteOptimizationPage= lazy(() => import('./pages/RouteOptimizationPage'))
 const DriverTrackingPage   = lazy(() => import('./pages/DriverTrackingPage'));
 const ShipmentRequestsPage = lazy(() => import('./pages/ShipmentRequestsPage'));
 const RequestShipmentPage  = lazy(() => import('./pages/RequestShipmentPage'));
+const AnalyticsPage        = lazy(() => import('./pages/AnalyticsPage'));
+const DecisionsPage        = lazy(() => import('./pages/DecisionsPage'));
+const DigitalTwinPage      = lazy(() => import('./pages/DigitalTwinPage'));
+const MonitoringPage       = lazy(() => import('./pages/MonitoringPage'));
+const ReportsPage          = lazy(() => import('./pages/ReportsPage'));
 
 function PageLoader() {
   return (
@@ -107,13 +114,11 @@ function PendingSetup() {
         width: '100%', maxWidth: 420, textAlign: 'center',
       }}>
         {/* Logo */}
-        <div style={{
-          width: 52, height: 52, borderRadius: 14,
-          background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '1.25rem', fontWeight: 800, color: '#fff',
-          margin: '0 auto 1.25rem',
-        }}>SE</div>
+        <img
+          src="/logo.svg"
+          alt="SupplyEazy"
+          style={{ width: 52, height: 52, margin: '0 auto 1.25rem', display: 'block' }}
+        />
 
         {step === 'check' ? (
           <>
@@ -215,8 +220,9 @@ function AppRoutes() {
       <Routes>
         {/* Public */}
         <Route path="/" element={<LandingPage />} />
-        <Route path="/login"  element={<PublicRoute><LoginPage /></PublicRoute>} />
-        <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
+        <Route path="/login"      element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/signup"     element={<PublicRoute><SignupPage /></PublicRoute>} />
+        <Route path="/set-password" element={<SetPasswordPage />} />
 
         {/* Protected — all authenticated roles */}
         <Route path="/dashboard"        element={<ProtectedRoute><Layout><DashboardPage /></Layout></ProtectedRoute>} />
@@ -235,10 +241,17 @@ function AppRoutes() {
 
         {/* Admin only */}
         <Route path="/shipments/new"       element={<ProtectedRoute roles={['admin']}><Layout><CreateShipmentPage /></Layout></ProtectedRoute>} />
-        <Route path="/shipment-requests"   element={<ProtectedRoute roles={['admin','manager']}><Layout><ShipmentRequestsPage /></Layout></ProtectedRoute>} />
+        <Route path="/shipment-requests"   element={<ProtectedRoute><Layout><ShipmentRequestsPage /></Layout></ProtectedRoute>} />
         <Route path="/route-optimization"  element={<ProtectedRoute roles={['admin','manager','analyst']}><Layout><RouteOptimizationPage /></Layout></ProtectedRoute>} />
-        <Route path="/users"               element={<ProtectedRoute roles={['admin','manager']}><Layout><UsersPage /></Layout></ProtectedRoute>} />
+        <Route path="/users"               element={<ProtectedRoute><Layout><UsersPage /></Layout></ProtectedRoute>} />
         <Route path="/organization"        element={<ProtectedRoute roles={['admin']}><Layout><OrganizationPage /></Layout></ProtectedRoute>} />
+
+        {/* Analytics & Reports */}
+        <Route path="/analytics"           element={<ProtectedRoute><Layout><AnalyticsPage /></Layout></ProtectedRoute>} />
+        <Route path="/reports"             element={<ProtectedRoute><Layout><ReportsPage /></Layout></ProtectedRoute>} />
+        <Route path="/decisions"           element={<ProtectedRoute><Layout><DecisionsPage /></Layout></ProtectedRoute>} />
+        <Route path="/monitoring"          element={<ProtectedRoute><Layout><MonitoringPage /></Layout></ProtectedRoute>} />
+        <Route path="/digital-twin"        element={<ProtectedRoute><Layout><DigitalTwinPage /></Layout></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
@@ -250,7 +263,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY} libraries={['places']}>
+          <AppRoutes />
+        </LoadScript>
       </AuthProvider>
     </BrowserRouter>
   );

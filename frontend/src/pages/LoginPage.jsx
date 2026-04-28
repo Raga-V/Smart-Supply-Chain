@@ -187,6 +187,10 @@ export default function LoginPage() {
             <p className="auth-footer-text" style={{ marginTop: '0.375rem' }}>
               <Link to="/" style={{ color: '#94a3b8' }}>← Back to home</Link>
             </p>
+            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', fontSize: '0.8125rem', color: '#94a3b8', textAlign: 'center' }}>
+              Invited by your organization?{' '}
+              <Link to="/set-password" style={{ color: '#4f46e5', fontWeight: 600 }}>Set your password →</Link>
+            </div>
           </div>
         </div>
 

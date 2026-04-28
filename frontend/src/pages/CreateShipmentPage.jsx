@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { shipmentAPI, orgAPI } from '../services/api';
+import { shipmentAPI, routeAPI } from '../services/api';
 import LocationSearchInput from '../components/LocationSearchInput';
 import {
   MapPin, Package, CheckCircle, BarChart3, ArrowLeft, ArrowRight,
   Rocket, RefreshCw, Truck, Train, Ship, Plane, Plus, Trash2,
-  User, AlertTriangle, Navigation, X
+  AlertTriangle, Navigation, X, Route, Edit3, Clock, DollarSign
 } from 'lucide-react';
 import './CreateShipmentPage.css';
 
@@ -16,7 +16,6 @@ const MODES = [
   { value:'ship',  label:'Ship',   icon:'🚢' },
   { value:'air',   label:'Air',    icon:'✈️' },
 ];
-
 const RISK_COLORS = { low:'var(--risk-low)', medium:'var(--risk-medium)', high:'var(--risk-high)', critical:'var(--risk-critical)' };
 
 function emptyLeg(n) {
@@ -26,103 +25,190 @@ function emptyLeg(n) {
     destination: { name:'', lat:null, lng:null },
     transport_mode: 'truck',
     vehicle_id: '',
-    driver_id: '',
     stops: [],
     estimated_duration_min: '',
   };
 }
+function emptyStop() { return { location:{ name:'', lat:null, lng:null }, stop_duration_min:30 }; }
 
-function emptyStop() {
-  return { location:{ name:'', lat:null, lng:null }, stop_duration_min:30 };
+// Enhanced route map with animated path & vehicle icon
+function RouteMap({ origin, destination, selectedRouteName, style }) {
+  const ref = useRef(null);
+  const mapRef = useRef(null);
+  const rendererRef = useRef(null);
+  const vehicleRef = useRef(null);
+  const animFrameRef = useRef(null);
+
+  useEffect(() => {
+    if (!ref.current || !window.google?.maps) return;
+    if (!origin?.lat || !destination?.lat) return;
+
+    // Create map (or reuse)
+    if (!mapRef.current) {
+      mapRef.current = new window.google.maps.Map(ref.current, {
+        zoom: 6,
+        center: { lat: (origin.lat + destination.lat) / 2, lng: (origin.lng + destination.lng) / 2 },
+        disableDefaultUI: true,
+        zoomControl: true,
+        styles: [
+          { elementType:'geometry', stylers:[{color:'#1e293b'}] },
+          { elementType:'labels.text.fill', stylers:[{color:'#94a3b8'}] },
+          { featureType:'road', elementType:'geometry', stylers:[{color:'#334155'}] },
+          { featureType:'water', stylers:[{color:'#0f172a'}] },
+        ],
+      });
+    }
+    const map = mapRef.current;
+
+    // Clean previous renderer
+    if (rendererRef.current) rendererRef.current.setMap(null);
+    if (vehicleRef.current) vehicleRef.current.setMap(null);
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+
+    // Directions
+    const svc = new window.google.maps.DirectionsService();
+    const renderer = new window.google.maps.DirectionsRenderer({
+      map,
+      suppressMarkers: true,
+      polylineOptions: { strokeColor: '#6366f1', strokeWeight: 5, strokeOpacity: 0.85 },
+    });
+    rendererRef.current = renderer;
+
+    svc.route({
+      origin: { lat: origin.lat, lng: origin.lng },
+      destination: { lat: destination.lat, lng: destination.lng },
+      travelMode: window.google.maps.TravelMode.DRIVING,
+    }, (result, status) => {
+      if (status !== 'OK') {
+        // Fallback: draw a geodesic polyline
+        new window.google.maps.Polyline({
+          path: [
+            { lat: origin.lat, lng: origin.lng },
+            { lat: destination.lat, lng: destination.lng },
+          ],
+          geodesic: true,
+          strokeColor: '#6366f1',
+          strokeWeight: 4,
+          strokeOpacity: 0.8,
+          map,
+        });
+        // Fit bounds
+        const bounds = new window.google.maps.LatLngBounds();
+        bounds.extend({ lat: origin.lat, lng: origin.lng });
+        bounds.extend({ lat: destination.lat, lng: destination.lng });
+        map.fitBounds(bounds, 50);
+        return;
+      }
+      renderer.setDirections(result);
+
+      // Add origin & destination markers
+      new window.google.maps.Marker({
+        position: { lat: origin.lat, lng: origin.lng },
+        map,
+        icon: { path: window.google.maps.SymbolPath.CIRCLE, fillColor: '#22c55e', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2, scale: 8 },
+        title: origin.name || 'Origin',
+      });
+      new window.google.maps.Marker({
+        position: { lat: destination.lat, lng: destination.lng },
+        map,
+        icon: { path: window.google.maps.SymbolPath.CIRCLE, fillColor: '#ef4444', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2, scale: 8 },
+        title: destination.name || 'Destination',
+      });
+
+      // Animated vehicle along route path
+      const path = result.routes[0].overview_path;
+      if (path && path.length > 1) {
+        const vehicle = new window.google.maps.Marker({
+          map,
+          icon: {
+            path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+            fillColor: '#f59e0b',
+            fillOpacity: 1,
+            strokeColor: '#fff',
+            strokeWeight: 1.5,
+            scale: 5,
+            rotation: 0,
+          },
+          zIndex: 100,
+        });
+        vehicleRef.current = vehicle;
+
+        let idx = 0;
+        const animateVehicle = () => {
+          if (idx >= path.length - 1) idx = 0;
+          vehicle.setPosition(path[idx]);
+          // Calculate heading
+          if (idx < path.length - 1) {
+            const heading = window.google.maps.geometry?.spherical?.computeHeading?.(path[idx], path[idx + 1]) || 0;
+            vehicle.setIcon({ ...vehicle.getIcon(), rotation: heading });
+          }
+          idx++;
+          animFrameRef.current = setTimeout(animateVehicle, 120);
+        };
+        animateVehicle();
+      }
+    });
+
+    return () => {
+      if (animFrameRef.current) clearTimeout(animFrameRef.current);
+    };
+  }, [origin?.lat, origin?.lng, destination?.lat, destination?.lng, selectedRouteName]);
+
+  if (!origin?.lat || !destination?.lat) {
+    return (
+      <div style={{ width:'100%', height: 220, borderRadius: 10, background: '#1e293b', display:'flex', alignItems:'center', justifyContent:'center', color:'#94a3b8', fontSize:'0.8125rem', ...style }}>
+        <Navigation size={18} style={{marginRight:6, opacity:0.5}} /> Set origin & destination to see the route
+      </div>
+    );
+  }
+  return <div ref={ref} style={{ width:'100%', height: 260, borderRadius: 10, overflow:'hidden', ...style }} />;
 }
 
 export default function CreateShipmentPage() {
   const navigate = useNavigate();
-  const { userProfile, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const [step, setStep]   = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [riskResult, setRiskResult] = useState(null);
-  const [drivers, setDrivers] = useState([]);
-  const [vehicles, setVehicles] = useState([]);
-
+  const [riskResult, setRiskResult]   = useState(null);
+  const [routes, setRoutes]           = useState([]);
+  const [selectedRoute, setSelectedRoute] = useState(0);
+  const [customRoute, setCustomRoute] = useState('');
+  const [showCustom, setShowCustom]   = useState(false);
+  const [shipmentId, setShipmentId]   = useState(null);
   const [numLegs, setNumLegs] = useState(1);
   const [legs, setLegs] = useState([emptyLeg(1)]);
-
   const [cargo, setCargo] = useState({
-    cargo_type: 'general',
-    cargo_description: '',
-    cargo_weight_kg: '',
-    cargo_value: '',
-    priority: 'normal',
-    delivery_deadline: '',
-    temperature_min: '',
-    temperature_max: '',
-    notes: '',
+    cargo_type:'general', cargo_description:'', cargo_weight_kg:'',
+    cargo_value:'', priority:'normal', delivery_deadline:'',
+    temperature_min:'', temperature_max:'', notes:'',
   });
 
-  // Load drivers & vehicles on mount
-  useEffect(() => {
-    orgAPI.listUsers().then(r => {
-      setDrivers((r.data.users||[]).filter(u => u.role === 'driver'));
-    }).catch(()=>{});
-    // vehicles from fleet API (use import if needed)
-    import('../services/api').then(({ fleetAPI }) => {
-      fleetAPI.listVehicles().then(r => setVehicles(r.data.vehicles||[])).catch(()=>{});
-    });
-  }, []);
-
-  // Sync legs array when numLegs changes
   useEffect(() => {
     setLegs(prev => {
       const next = [...prev];
-      while (next.length < numLegs) next.push(emptyLeg(next.length + 1));
+      while (next.length < numLegs) next.push(emptyLeg(next.length+1));
       if (next.length > numLegs) next.splice(numLegs);
       return next;
     });
   }, [numLegs]);
 
-  const updateLeg = (i, field, val) => setLegs(prev => {
-    const next = [...prev];
-    next[i] = { ...next[i], [field]: val };
-    return next;
-  });
-
-  const updateStop = (li, si, field, val) => setLegs(prev => {
-    const next = [...prev];
-    const stops = [...next[li].stops];
-    stops[si] = { ...stops[si], [field]: val };
-    next[li] = { ...next[li], stops };
-    return next;
-  });
-
-  const addStop = (li) => setLegs(prev => {
-    const next = [...prev];
-    next[li] = { ...next[li], stops: [...next[li].stops, emptyStop()] };
-    return next;
-  });
-
-  const removeStop = (li, si) => setLegs(prev => {
-    const next = [...prev];
-    const stops = [...next[li].stops];
-    stops.splice(si, 1);
-    next[li] = { ...next[li], stops };
-    return next;
-  });
-
+  const updateLeg = (i, field, val) => setLegs(prev => { const n=[...prev]; n[i]={...n[i],[field]:val}; return n; });
   const updateStopLocation = (li, si, loc) => setLegs(prev => {
-    const next = [...prev];
-    const stops = [...next[li].stops];
-    stops[si] = { ...stops[si], location: loc };
-    next[li] = { ...next[li], stops };
-    return next;
+    const n=[...prev], stops=[...n[li].stops]; stops[si]={...stops[si],location:loc}; n[li]={...n[li],stops}; return n;
+  });
+  const updateStop = (li, si, field, val) => setLegs(prev => {
+    const n=[...prev], stops=[...n[li].stops]; stops[si]={...stops[si],[field]:val}; n[li]={...n[li],stops}; return n;
+  });
+  const addStop = (li) => setLegs(prev => { const n=[...prev]; n[li]={...n[li],stops:[...n[li].stops,emptyStop()]}; return n; });
+  const removeStop = (li, si) => setLegs(prev => {
+    const n=[...prev], stops=[...n[li].stops]; stops.splice(si,1); n[li]={...n[li],stops}; return n;
   });
 
   const validateLegs = () => {
-    for (let i = 0; i < legs.length; i++) {
-      const l = legs[i];
-      if (!l.origin.name) return `Leg ${i+1}: origin is required`;
-      if (!l.destination.name) return `Leg ${i+1}: destination is required`;
+    for (let i=0; i<legs.length; i++) {
+      if (!legs[i].origin.name) return `Leg ${i+1}: origin required`;
+      if (!legs[i].destination.name) return `Leg ${i+1}: destination required`;
     }
     return null;
   };
@@ -131,65 +217,66 @@ export default function CreateShipmentPage() {
     const legError = validateLegs();
     if (legError) { setError(legError); return; }
     if (!cargo.cargo_weight_kg) { setError('Cargo weight is required'); return; }
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
-      const firstLeg = legs[0];
-      const lastLeg  = legs[legs.length - 1];
+      const firstLeg = legs[0], lastLeg = legs[legs.length-1];
       const payload = {
-        origin_name:     firstLeg.origin.name,
-        origin_lat:      firstLeg.origin.lat || 0,
-        origin_lng:      firstLeg.origin.lng || 0,
+        origin_name: firstLeg.origin.name,
+        origin_lat: firstLeg.origin.lat||0, origin_lng: firstLeg.origin.lng||0,
         destination_name: lastLeg.destination.name,
-        destination_lat:  lastLeg.destination.lat || 0,
-        destination_lng:  lastLeg.destination.lng || 0,
-        cargo_type:        cargo.cargo_type,
-        cargo_description: cargo.cargo_description,
-        cargo_weight_kg:   parseFloat(cargo.cargo_weight_kg),
-        cargo_value:       cargo.cargo_value ? parseFloat(cargo.cargo_value) : null,
-        transport_mode:    firstLeg.transport_mode,
-        priority:          cargo.priority,
-        delivery_deadline: cargo.delivery_deadline || null,
-        temperature_min:   cargo.temperature_min ? parseFloat(cargo.temperature_min) : null,
-        temperature_max:   cargo.temperature_max ? parseFloat(cargo.temperature_max) : null,
-        notes:             cargo.notes,
-        route_legs: legs.map((l, idx) => ({
-          origin: { name: l.origin.name, lat: l.origin.lat||0, lng: l.origin.lng||0, order: idx*2 },
-          destination: { name: l.destination.name, lat: l.destination.lat||0, lng: l.destination.lng||0, order: idx*2+1 },
-          transport_mode: l.transport_mode,
-          vehicle_id: l.vehicle_id || null,
-          driver_id: l.driver_id || null,
-          stops: l.stops.map(s=>({ name:s.location.name, lat:s.location.lat||0, lng:s.location.lng||0, stop_duration_min:s.stop_duration_min })),
+        destination_lat: lastLeg.destination.lat||0, destination_lng: lastLeg.destination.lng||0,
+        cargo_type: cargo.cargo_type, cargo_description: cargo.cargo_description,
+        cargo_weight_kg: parseFloat(cargo.cargo_weight_kg),
+        cargo_value: cargo.cargo_value ? parseFloat(cargo.cargo_value) : null,
+        transport_mode: firstLeg.transport_mode, priority: cargo.priority,
+        delivery_deadline: cargo.delivery_deadline||null,
+        temperature_min: cargo.temperature_min ? parseFloat(cargo.temperature_min) : null,
+        temperature_max: cargo.temperature_max ? parseFloat(cargo.temperature_max) : null,
+        notes: cargo.notes,
+        route_legs: legs.map((l,idx) => ({
+          origin: {name:l.origin.name, lat:l.origin.lat||0, lng:l.origin.lng||0, order:idx*2},
+          destination: {name:l.destination.name, lat:l.destination.lat||0, lng:l.destination.lng||0, order:idx*2+1},
+          transport_mode: l.transport_mode, vehicle_id: l.vehicle_id||null,
+          stops: l.stops.map(s=>({name:s.location.name,lat:s.location.lat||0,lng:s.location.lng||0,stop_duration_min:s.stop_duration_min})),
           estimated_duration_min: l.estimated_duration_min ? parseInt(l.estimated_duration_min) : null,
         })),
-        waypoints: legs.flatMap((l, idx) =>
-          l.stops.map(s => ({ name:s.location.name, lat:s.location.lat||0, lng:s.location.lng||0, order: idx*10, stop_duration_min:s.stop_duration_min }))
+        waypoints: legs.flatMap((l,idx) =>
+          l.stops.map(s=>({name:s.location.name,lat:s.location.lat||0,lng:s.location.lng||0,order:idx*10,stop_duration_min:s.stop_duration_min}))
         ),
       };
       const res = await shipmentAPI.create(payload);
       setRiskResult(res.data.risk_evaluation);
+      setShipmentId(res.data.id);
+      // Fetch route options
+      try {
+        const rr = await routeAPI.optimize({
+          origin: { name: firstLeg.origin.name, lat: firstLeg.origin.lat||0, lng: firstLeg.origin.lng||0 },
+          destination: { name: lastLeg.destination.name, lat: lastLeg.destination.lat||0, lng: lastLeg.destination.lng||0 },
+          transport_mode: firstLeg.transport_mode,
+          cargo_type: cargo.cargo_type,
+          cargo_weight_kg: parseFloat(cargo.cargo_weight_kg),
+        });
+        setRoutes(rr.data.routes||[]);
+      } catch { setRoutes([]); }
       setStep(4);
     } catch(err) {
       setError(err.response?.data?.detail || 'Failed to create shipment');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   if (!isAdmin) {
     return (
-      <div className="glass-card" style={{textAlign:'center', padding:'3rem'}}>
+      <div className="glass-card" style={{textAlign:'center',padding:'3rem'}}>
         <AlertTriangle size={40} style={{color:'var(--risk-high)',margin:'0 auto 1rem'}}/>
         <h2>Admin Access Required</h2>
-        <p style={{color:'var(--text-secondary)',marginTop:'0.5rem'}}>Only Admins can create shipments. Managers can submit a shipment request.</p>
-        <button className="btn btn-primary" style={{marginTop:'1.25rem'}} onClick={()=>navigate('/request-shipment')}>
-          Submit a Request
-        </button>
+        <p style={{color:'var(--text-secondary)',marginTop:'0.5rem'}}>Only Admins can create shipments.</p>
+        <button className="btn btn-primary" style={{marginTop:'1.25rem'}} onClick={()=>navigate('/request-shipment')}>Submit a Request</button>
       </div>
     );
   }
 
-  const STEPS = ['Legs & Routes', 'Cargo Details', 'Review', 'Risk Analysis'];
+  const STEPS = ['Legs & Routes','Cargo Details','Review','Risk & Routes'];
+  const firstLeg = legs[0], lastLeg = legs[legs.length-1];
 
   return (
     <div className="create-shipment-page animate-fade-in">
@@ -198,13 +285,12 @@ export default function CreateShipmentPage() {
         <button className="btn btn-ghost" onClick={()=>navigate('/shipments')}><ArrowLeft size={14}/>Back</button>
       </div>
 
-      {/* Wizard progress */}
       <div className="wizard-progress">
-        {STEPS.map((label, i) => (
-          <div key={label} className={`wizard-step ${step > i+1 ? 'completed' : ''} ${step === i+1 ? 'active' : ''}`}>
-            <span className="wizard-dot">{step > i+1 ? <CheckCircle size={13}/> : i+1}</span>
+        {STEPS.map((label,i) => (
+          <div key={label} className={`wizard-step ${step>i+1?'completed':''} ${step===i+1?'active':''}`}>
+            <span className="wizard-dot">{step>i+1?<CheckCircle size={13}/>:i+1}</span>
             <span className="wizard-label">{label}</span>
-            {i < STEPS.length-1 && <span style={{flex:1}}/>}
+            {i<STEPS.length-1&&<span style={{flex:1}}/>}
           </div>
         ))}
       </div>
@@ -212,53 +298,37 @@ export default function CreateShipmentPage() {
       <div className="glass-card wizard-card">
         {error && <div className="auth-error" style={{marginBottom:'1rem'}}>{error}</div>}
 
-        {/* ── Step 1: Legs & Routes ── */}
-        {step === 1 && (
+        {/* Step 1 */}
+        {step===1 && (
           <div className="animate-fade-in">
             <div className="step-title"><MapPin size={18} className="icon"/>Legs & Route Configuration</div>
-
             <div className="form-group" style={{marginBottom:'1.25rem'}}>
               <label className="form-label">Number of Transport Legs</label>
               <div style={{display:'flex',alignItems:'center',gap:'0.75rem'}}>
                 <input className="form-input" type="number" min={1} max={10} value={numLegs}
-                  onChange={e=>setNumLegs(Math.max(1, Math.min(10, parseInt(e.target.value)||1)))}
+                  onChange={e=>setNumLegs(Math.max(1,Math.min(10,parseInt(e.target.value)||1)))}
                   style={{maxWidth:100}}/>
                 <span style={{fontSize:'0.8125rem',color:'var(--text-secondary)'}}>
-                  {numLegs === 1 ? 'Single leg (direct)' : `Multi-leg shipment (${numLegs} transport legs)`}
+                  {numLegs===1?'Single leg (direct)':`Multi-leg (${numLegs} legs)`}
                 </span>
               </div>
             </div>
 
-            {legs.map((leg, li) => (
+            {legs.map((leg,li) => (
               <div key={li} className="leg-card">
                 <div className="leg-card-header">
-                  <div className="leg-number">
-                    <div className="leg-number-badge">{li+1}</div>
-                    Leg {li+1}
-                  </div>
+                  <div className="leg-number"><div className="leg-number-badge">{li+1}</div> Leg {li+1}</div>
                 </div>
-
-                {/* Origin & Destination */}
                 <div className="grid grid-2" style={{marginBottom:'1rem'}}>
                   <div className="form-group">
                     <label className="form-label">Origin *</label>
-                    <LocationSearchInput
-                      value={leg.origin}
-                      onChange={loc=>updateLeg(li,'origin',loc)}
-                      placeholder="Search origin location…"
-                    />
+                    <LocationSearchInput value={leg.origin} onChange={loc=>updateLeg(li,'origin',loc)} placeholder="Search origin…"/>
                   </div>
                   <div className="form-group">
                     <label className="form-label">Destination *</label>
-                    <LocationSearchInput
-                      value={leg.destination}
-                      onChange={loc=>updateLeg(li,'destination',loc)}
-                      placeholder="Search destination location…"
-                    />
+                    <LocationSearchInput value={leg.destination} onChange={loc=>updateLeg(li,'destination',loc)} placeholder="Search destination…"/>
                   </div>
                 </div>
-
-                {/* Transport Mode */}
                 <div className="form-group" style={{marginBottom:'1rem'}}>
                   <label className="form-label">Transport Mode</label>
                   <div className="mode-selector">
@@ -271,59 +341,25 @@ export default function CreateShipmentPage() {
                     ))}
                   </div>
                 </div>
-
-                {/* Vehicle & Driver */}
-                <div className="grid grid-2" style={{marginBottom:'1rem'}}>
-                  <div className="form-group">
-                    <label className="form-label">Vehicle (optional)</label>
-                    <select className="form-select" value={leg.vehicle_id} onChange={e=>updateLeg(li,'vehicle_id',e.target.value)}>
-                      <option value="">Select vehicle…</option>
-                      {vehicles.map(v=>(
-                        <option key={v.id} value={v.id}>{v.registration_number} — {v.type}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label"><User size={12} style={{display:'inline',verticalAlign:'-1px',marginRight:3}}/>Assigned Driver</label>
-                    <select className="form-select" value={leg.driver_id} onChange={e=>updateLeg(li,'driver_id',e.target.value)}>
-                      <option value="">Select driver…</option>
-                      {drivers.map(d=>(
-                        <option key={d.uid} value={d.uid}>{d.display_name || d.email}</option>
-                      ))}
-                    </select>
-                    {drivers.length===0&&<div style={{fontSize:'0.6875rem',color:'var(--text-muted)',marginTop:4}}>No drivers found. Invite drivers from Team page.</div>}
-                  </div>
-                </div>
-
-                {/* Stops */}
-                <div style={{marginBottom:'0.5rem'}}>
+                <div className="form-group" style={{marginBottom:'0.5rem'}}>
                   <label className="form-label" style={{marginBottom:'0.5rem',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                     Stop Points ({leg.stops.length})
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={()=>addStop(li)}>
-                      <Plus size={13}/>Add Stop
-                    </button>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={()=>addStop(li)}><Plus size={13}/>Add Stop</button>
                   </label>
-                  {leg.stops.map((stop, si)=>(
+                  {leg.stops.map((stop,si)=>(
                     <div key={si} className="stop-card">
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'0.5rem'}}>
                         <span style={{fontSize:'0.75rem',fontWeight:700,color:'var(--text-secondary)'}}>Stop {si+1}</span>
-                        <button type="button" className="btn btn-ghost btn-sm" onClick={()=>removeStop(li,si)} style={{padding:'0.125rem 0.375rem'}}>
-                          <X size={12}/>
-                        </button>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={()=>removeStop(li,si)} style={{padding:'0.125rem 0.375rem'}}><X size={12}/></button>
                       </div>
                       <div className="grid grid-2">
                         <div className="form-group">
                           <label className="form-label">Location</label>
-                          <LocationSearchInput
-                            value={stop.location}
-                            onChange={loc=>updateStopLocation(li,si,loc)}
-                            placeholder="Stop location…"
-                          />
+                          <LocationSearchInput value={stop.location} onChange={loc=>updateStopLocation(li,si,loc)} placeholder="Stop location…"/>
                         </div>
                         <div className="form-group">
                           <label className="form-label">Stop Duration (min)</label>
-                          <input className="form-input" type="number" min={0}
-                            value={stop.stop_duration_min}
+                          <input className="form-input" type="number" min={0} value={stop.stop_duration_min}
                             onChange={e=>updateStop(li,si,'stop_duration_min',parseInt(e.target.value)||0)}/>
                         </div>
                       </div>
@@ -340,8 +376,8 @@ export default function CreateShipmentPage() {
           </div>
         )}
 
-        {/* ── Step 2: Cargo Details ── */}
-        {step === 2 && (
+        {/* Step 2 */}
+        {step===2 && (
           <div className="animate-fade-in">
             <div className="step-title"><Package size={18} className="icon"/>Cargo Details</div>
             <div className="grid grid-2" style={{marginBottom:'1rem'}}>
@@ -386,8 +422,7 @@ export default function CreateShipmentPage() {
             )}
             <div className="form-group" style={{marginBottom:'1rem'}}>
               <label className="form-label">Delivery Deadline</label>
-              <input className="form-input" type="datetime-local" value={cargo.delivery_deadline}
-                onChange={e=>setCargo(p=>({...p,delivery_deadline:e.target.value}))}/>
+              <input className="form-input" type="datetime-local" value={cargo.delivery_deadline} onChange={e=>setCargo(p=>({...p,delivery_deadline:e.target.value}))}/>
             </div>
             <div className="form-group" style={{marginBottom:'1rem'}}>
               <label className="form-label">Description / Notes</label>
@@ -403,8 +438,8 @@ export default function CreateShipmentPage() {
           </div>
         )}
 
-        {/* ── Step 3: Review ── */}
-        {step === 3 && (
+        {/* Step 3 */}
+        {step===3 && (
           <div className="animate-fade-in">
             <div className="step-title"><CheckCircle size={18} className="icon"/>Review & Submit</div>
             <div className="review-grid">
@@ -414,7 +449,6 @@ export default function CreateShipmentPage() {
                 <div key={i} className="review-item">
                   <span className="review-label">Leg {i+1}</span>
                   <span className="review-value">{l.origin.name} → {l.destination.name} via {l.transport_mode}{l.stops.length>0?` (${l.stops.length} stop${l.stops.length>1?'s':''})`:''}
-                  {l.driver_id&&<span style={{fontSize:'0.6875rem',color:'var(--text-muted)',marginLeft:4}}>Driver: {drivers.find(d=>d.uid===l.driver_id)?.display_name||l.driver_id}</span>}
                   </span>
                 </div>
               ))}
@@ -431,10 +465,12 @@ export default function CreateShipmentPage() {
           </div>
         )}
 
-        {/* ── Step 4: Risk Result ── */}
-        {step === 4 && riskResult && (
+        {/* Step 4: Risk + Route Options */}
+        {step===4 && riskResult && (
           <div className="animate-fade-in">
-            <div className="step-title"><BarChart3 size={18} className="icon"/>Risk Analysis Results</div>
+            <div className="step-title"><BarChart3 size={18} className="icon"/>Risk Analysis & Route Options</div>
+
+            {/* Risk Summary */}
             <div className="risk-result-card" style={{borderColor:RISK_COLORS[riskResult.risk_level]}}>
               <div className="risk-result-header">
                 <div>
@@ -443,12 +479,12 @@ export default function CreateShipmentPage() {
                 </div>
                 <div style={{textAlign:'right'}}>
                   <div style={{fontSize:'0.75rem',color:'var(--text-muted)'}}>Confidence</div>
-                  <div style={{fontSize:'1.25rem',fontWeight:800,color:'var(--text-primary)'}}>{(riskResult.confidence*100).toFixed(0)}%</div>
+                  <div style={{fontSize:'1.25rem',fontWeight:800,color:'var(--text-primary)'}}>{((riskResult.confidence||0)*100).toFixed(0)}%</div>
                 </div>
               </div>
               {riskResult.risk_factors&&(
                 <div style={{marginTop:'1rem'}}>
-                  <h4 style={{fontSize:'0.875rem',marginBottom:'0.625rem',color:'var(--text-primary)'}}>Risk Factors</h4>
+                  <h4 style={{fontSize:'0.875rem',marginBottom:'0.625rem'}}>Risk Factors</h4>
                   <div className="risk-factors">
                     {Object.entries(riskResult.risk_factors).map(([k,v])=>(
                       <div key={k} className="risk-factor-item">
@@ -460,19 +496,76 @@ export default function CreateShipmentPage() {
                   </div>
                 </div>
               )}
-              {riskResult.alternatives?.length>0&&(
-                <div className="alternatives-section">
-                  <h4><RefreshCw size={13}/>Recommended Alternatives</h4>
-                  {riskResult.alternatives.map((alt,i)=>(
-                    <div key={i} className="alternative-card">
-                      <span className={`badge badge-${alt.risk_score<0.4?'low':alt.risk_score<0.6?'medium':'high'}`}>{(alt.risk_score*100).toFixed(0)}%</span>
-                      <span className="alt-desc">{alt.description}</span>
-                      <span className="alt-impact">ETA: {alt.eta_impact_min>0?'+':''}{alt.eta_impact_min}min | Cost: {alt.cost_impact_pct>0?'+':''}{alt.cost_impact_pct}%</span>
+            </div>
+
+            {/* Route Map */}
+            {firstLeg?.origin?.lat && lastLeg?.destination?.lat && (
+              <div style={{marginTop:'1.5rem'}}>
+                <h4 style={{fontSize:'0.9375rem',fontWeight:700,marginBottom:'0.75rem',display:'flex',alignItems:'center',gap:'0.5rem'}}>
+                  <MapPin size={16} style={{color:'var(--accent-primary)'}}/>Route Map
+                </h4>
+                <RouteMap origin={firstLeg.origin} destination={lastLeg.destination} selectedRouteName={routes[selectedRoute]?.name}/>
+              </div>
+            )}
+
+            {/* Top 5 Route Options */}
+            {routes.length>0 && (
+              <div style={{marginTop:'1.5rem'}}>
+                <h4 style={{fontSize:'0.9375rem',fontWeight:700,marginBottom:'0.875rem',display:'flex',alignItems:'center',gap:'0.5rem'}}>
+                  <Route size={16} style={{color:'var(--accent-primary)'}}/>Top {routes.length} Suggested Routes
+                </h4>
+                <div className="route-options-list">
+                  {routes.map((r,i)=>(
+                    <div key={i}
+                      className={`route-option-card ${selectedRoute===i?'selected':''}`}
+                      onClick={()=>setSelectedRoute(i)}>
+                      <div className="route-option-header">
+                        <div style={{display:'flex',alignItems:'center',gap:'0.625rem'}}>
+                          <div className={`route-option-rank ${selectedRoute===i?'rank-active':''}`}>{i+1}</div>
+                          <div>
+                            <div className="route-option-name">{r.name}</div>
+                            <div className="route-option-desc">{r.description}</div>
+                          </div>
+                        </div>
+                        <span className={`badge badge-${r.risk_level}`}>{r.risk_level}</span>
+                      </div>
+                      <div className="route-option-stats">
+                        <div className="route-stat"><Truck size={12}/>{r.distance_km} km</div>
+                        <div className="route-stat"><Clock size={12}/>{r.duration_h}h</div>
+                        <div className="route-stat"><DollarSign size={12}/>₹{r.cost_estimate?.toLocaleString()}</div>
+                        <div className="route-stat"><BarChart3 size={12}/>{(r.risk_score*100).toFixed(0)}% risk</div>
+                      </div>
+                      {r.highlights&&(
+                        <div className="route-highlights">
+                          {r.highlights.map(h=><span key={h} className="route-highlight-tag">{h}</span>)}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Admin Custom Route Override */}
+            <div style={{marginTop:'1.5rem',paddingTop:'1.5rem',borderTop:'1px solid var(--border-color-light)'}}>
+              <button type="button" className="btn btn-ghost btn-sm"
+                onClick={()=>setShowCustom(!showCustom)}
+                style={{marginBottom:showCustom?'0.75rem':'0'}}>
+                <Edit3 size={13}/> {showCustom?'Hide Custom Override':'Admin: Override with Custom Route'}
+              </button>
+              {showCustom&&(
+                <div className="custom-route-box animate-fade-in">
+                  <label className="form-label">Custom Route Instructions</label>
+                  <textarea className="form-textarea" rows={3} value={customRoute}
+                    onChange={e=>setCustomRoute(e.target.value)}
+                    placeholder="e.g. Via NH-44, avoid toll plaza near Nagpur, use NH-48 bypass at Pune…"/>
+                  <p style={{fontSize:'0.75rem',color:'var(--text-muted)',marginTop:'0.375rem'}}>
+                    These instructions will be saved as admin notes on the shipment.
+                  </p>
+                </div>
               )}
             </div>
+
             <div style={{display:'flex',gap:'0.75rem',marginTop:'1.5rem'}}>
               <button className="btn btn-primary btn-lg" style={{flex:1}} onClick={()=>navigate('/shipments')}>
                 <CheckCircle size={16}/>View Shipments

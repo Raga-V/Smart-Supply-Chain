@@ -30,14 +30,14 @@ PERMISSIONS = {
     "user:invite": ["admin"],
     "user:assign_role": ["admin"],
     "user:remove": ["admin"],
-    "user:list": ["admin", "manager"],
+    "user:list": ["admin", "manager", "analyst", "fleet_manager", "driver"],
 
     # Shipment management
     "shipment:create": ["admin"],          # Only admin can create; managers submit requests
     "shipment:update": ["admin", "manager"],
     "shipment:delete": ["admin"],
     "shipment:read": ["admin", "manager", "analyst", "fleet_manager", "driver"],
-    "shipment:list": ["admin", "manager", "analyst", "fleet_manager"],
+    "shipment:list": ["admin", "manager", "analyst", "fleet_manager", "driver"],
 
     # Fleet management
     "fleet:create": ["admin", "fleet_manager"],

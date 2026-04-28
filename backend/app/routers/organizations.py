@@ -117,11 +117,22 @@ async def invite_user(
 @router.get("/users")
 async def list_users(user: AuthUser = Depends(require_permission("user:list"))):
     """List all users in the organization."""
-    users = await firestore_service.list_documents(
-        "users",
-        filters=[("org_id", "==", user.org_id)],
-        order_by="created_at",
-    )
+    try:
+        users = await firestore_service.list_documents(
+            "users",
+            filters=[("org_id", "==", user.org_id)],
+            limit=200,
+        )
+    except Exception as e:
+        # Fallback: try without any ordering (avoids composite index errors)
+        print(f"[WARN] users query failed: {e}, retrying without order")
+        client = firestore_service.get_client()
+        results = []
+        for doc in client.collection("users").where("org_id", "==", user.org_id).limit(200).stream():
+            d = doc.to_dict()
+            d["id"] = doc.id
+            results.append(d)
+        users = results
     return {"users": users}
 
 

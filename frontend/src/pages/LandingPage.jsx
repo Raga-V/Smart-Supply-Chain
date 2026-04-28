@@ -68,7 +68,7 @@ export default function LandingPage() {
       <nav className="landing-nav">
         <div className="landing-nav-inner">
           <div className="landing-logo">
-            <div className="landing-logo-mark">SE</div>
+            <img src="/logo.svg" alt="SupplyEazy Logo" className="landing-logo-mark" />
             <span className="landing-logo-text">Supply<span className="landing-logo-accent">Eazy</span></span>
           </div>
           <div className="landing-nav-actions">

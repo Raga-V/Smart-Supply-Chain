@@ -6,7 +6,7 @@ import { collection, query, where, onSnapshot, orderBy, limit, updateDoc, doc } 
 import {
   LayoutDashboard, Package, MapPin, Navigation, Route, ClipboardList,
   Truck, Warehouse, Users, MessageSquare, BarChart3, Settings,
-  Bell, LogOut, Building2, ChevronDown
+  Bell, LogOut, Building2, ChevronDown, TrendingUp, Brain, Activity, Eye
 } from 'lucide-react';
 import './Layout.css';
 
@@ -24,6 +24,13 @@ const NAV = {
       { icon: Truck,     label: 'Fleet',      path: '/fleet' },
       { icon: Warehouse, label: 'Warehouses', path: '/warehouses' },
     ]},
+    { section: 'Intelligence', items: [
+      { icon: BarChart3,   label: 'Analytics',   path: '/analytics' },
+      { icon: TrendingUp,  label: 'Reports',     path: '/reports' },
+      { icon: Brain,       label: 'Decisions',   path: '/decisions' },
+      { icon: Activity,    label: 'Monitoring',  path: '/monitoring' },
+      { icon: Eye,         label: 'Digital Twin', path: '/digital-twin' },
+    ]},
     { section: 'Team', items: [
       { icon: Users,        label: 'Team Members', path: '/users' },
       { icon: MessageSquare,label: 'Messages',     path: '/messages' },
@@ -38,6 +45,12 @@ const NAV = {
       { icon: Navigation,      label: 'Live Tracking',  path: '/live-tracking' },
       { icon: Route,           label: 'Route Optimizer',path: '/route-optimization' },
     ]},
+    { section: 'Intelligence', items: [
+      { icon: BarChart3,  label: 'Analytics',  path: '/analytics' },
+      { icon: TrendingUp, label: 'Reports',    path: '/reports' },
+      { icon: Brain,      label: 'Decisions',  path: '/decisions' },
+      { icon: Activity,   label: 'Monitoring', path: '/monitoring' },
+    ]},
     { section: 'Communication', items: [
       { icon: MessageSquare, label: 'Messages', path: '/messages' },
     ]},
@@ -51,6 +64,9 @@ const NAV = {
     { section: 'Fleet', items: [
       { icon: Truck,         label: 'Fleet',      path: '/fleet' },
       { icon: Warehouse,     label: 'Warehouses', path: '/warehouses' },
+    ]},
+    { section: 'Team', items: [
+      { icon: Users,         label: 'Team Members', path: '/users' },
       { icon: MessageSquare, label: 'Messages',   path: '/messages' },
     ]},
   ],
@@ -61,7 +77,15 @@ const NAV = {
       { icon: Navigation,      label: 'Live Tracking',  path: '/live-tracking' },
       { icon: Route,           label: 'Route Optimizer',path: '/route-optimization' },
     ]},
-    { section: 'Communication', items: [
+    { section: 'Intelligence', items: [
+      { icon: BarChart3,  label: 'Analytics', path: '/analytics' },
+      { icon: TrendingUp, label: 'Reports',   path: '/reports' },
+      { icon: Brain,      label: 'Decisions', path: '/decisions' },
+      { icon: Activity,   label: 'Monitoring', path: '/monitoring' },
+      { icon: Eye,        label: 'Digital Twin', path: '/digital-twin' },
+    ]},
+    { section: 'Team', items: [
+      { icon: Users,         label: 'Team Members', path: '/users' },
       { icon: MessageSquare, label: 'Messages', path: '/messages' },
     ]},
   ],
@@ -70,6 +94,9 @@ const NAV = {
       { icon: LayoutDashboard, label: 'Dashboard',   path: '/dashboard' },
       { icon: Navigation,      label: 'My GPS',      path: '/driver-tracking' },
       { icon: Package,         label: 'Shipments',   path: '/shipments' },
+    ]},
+    { section: 'Team', items: [
+      { icon: Users,         label: 'Team Members', path: '/users' },
       { icon: MessageSquare,   label: 'Messages',    path: '/messages' },
     ]},
   ],
@@ -89,6 +116,11 @@ const PAGE_TITLES = {
   '/shipment-requests':  'Shipment Requests',
   '/request-shipment':   'Request Shipment',
   '/driver-tracking':    'GPS Tracking',
+  '/analytics':          'Analytics',
+  '/reports':            'Reports',
+  '/decisions':          'Decisions',
+  '/monitoring':         'Monitoring',
+  '/digital-twin':       'Digital Twin',
 };
 
 const ROLE_LABELS = {
@@ -169,7 +201,7 @@ export default function Layout({ children }) {
       <aside className="sidebar">
         {/* Brand */}
         <div className="sidebar-brand">
-          <div className="sidebar-brand-mark">SE</div>
+          <img src="/logo.svg" alt="SupplyEazy Logo" className="sidebar-brand-mark" />
           <div className="sidebar-brand-text">
             <div className="sidebar-brand-name">SupplyEazy</div>
             <div className="sidebar-brand-tagline">Intelligence Platform</div>

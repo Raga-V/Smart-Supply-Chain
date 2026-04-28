@@ -1,5 +1,5 @@
 /* ============================================================
-   Shipments Page
+   Shipments Page — Full Polish
    ============================================================ */
 
 .shipments-page {
@@ -7,6 +7,21 @@
   margin: 0 auto;
 }
 
+.page-subtitle {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+  font-weight: 400;
+}
+
+/* Table wrapper */
+.shipments-table-wrap {
+  padding: 0;
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+/* Shipment ID pill */
 .shipment-id-cell {
   font-family: var(--font-mono);
   font-size: 0.75rem;
@@ -14,19 +29,89 @@
   background: var(--accent-primary-glow);
   padding: 2px 8px;
   border-radius: var(--radius-sm);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
-.status-cell {
+/* Route column */
+.route-cell {
   display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+}
+.route-arrow {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* Status cell */
+.status-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  text-transform: capitalize;
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+}
+
+.status-in_transit  { color: #2563eb; background: #eff6ff; border-color: #bfdbfe; }
+.status-at_risk     { color: #dc2626; background: #fef2f2; border-color: #fca5a5; }
+.status-draft       { color: #6b7280; background: #f3f4f6; border-color: #e5e7eb; }
+.status-pending     { color: #d97706; background: #fffbeb; border-color: #fcd34d; }
+.status-delivered   { color: #16a34a; background: #f0fdf4; border-color: #86efac; }
+.status-delayed     { color: #ea580c; background: #fff7ed; border-color: #fed7aa; }
+.status-cancelled   { color: #9ca3af; background: #f9fafb; border-color: #e5e7eb; }
+
+/* Risk score */
+.risk-score-cell {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  margin-left: 0.375rem;
+}
+
+/* Mode cell */
+.mode-cell {
+  display: inline-flex;
   align-items: center;
   gap: 0.375rem;
   font-size: 0.8125rem;
   text-transform: capitalize;
 }
 
-.risk-score-cell {
+/* Mono cells */
+.mono-cell {
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  color: var(--text-muted);
-  margin-left: 0.375rem;
+  font-size: 0.8125rem;
+}
+
+/* Date cell */
+.date-cell {
+  white-space: nowrap;
+  font-size: 0.8125rem;
+}
+
+/* Responsive: hide less important columns on small screens */
+@media (max-width: 900px) {
+  .shipments-table-wrap th:nth-child(6),
+  .shipments-table-wrap td:nth-child(6),
+  .shipments-table-wrap th:nth-child(7),
+  .shipments-table-wrap td:nth-child(7),
+  .shipments-table-wrap th:nth-child(8),
+  .shipments-table-wrap td:nth-child(8) {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .shipments-table-wrap th:nth-child(5),
+  .shipments-table-wrap td:nth-child(5),
+  .shipments-table-wrap th:nth-child(9),
+  .shipments-table-wrap td:nth-child(9) {
+    display: none;
+  }
 }

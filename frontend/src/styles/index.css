@@ -48,6 +48,15 @@ a:hover { text-decoration: underline; }
   transition: box-shadow var(--transition-base), border-color var(--transition-base);
 }
 
+/* Static card — no hover effects, used for data tables */
+.glass-card-static {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-lg);
+}
+
 /* ── Buttons ──────────────────────────────────────────────── */
 .btn {
   display: inline-flex;

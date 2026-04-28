@@ -35,15 +35,9 @@
 .landing-logo-mark {
   width: 36px;
   height: 36px;
-  background: var(--gradient-primary);
   border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1rem;
-  color: white;
+  display: block;
+  object-fit: contain;
   box-shadow: 0 2px 8px rgba(79,70,229,0.35);
 }
 .landing-logo-text {

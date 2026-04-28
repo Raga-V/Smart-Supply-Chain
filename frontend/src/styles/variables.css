@@ -45,6 +45,7 @@
   --accent-primary:       var(--indigo-500);
   --accent-primary-dark:  var(--indigo-700);
   --accent-primary-light: var(--indigo-400);
+  --accent-primary-glow:  rgba(79, 70, 229, 0.08);
   --accent-secondary:     var(--emerald-500);
 
   /* ── Backgrounds ─────────────────────────────────────────── */
