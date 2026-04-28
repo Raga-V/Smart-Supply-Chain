@@ -1,5 +1,5 @@
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:18 AS builder
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -16,23 +16,19 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine
+FROM nginx:alpine
 
-WORKDIR /app
+# Remove default nginx config
+RUN rm /etc/nginx/conf.d/default.conf
 
-# Install serve to run the production build
-RUN npm install -g serve
+# Create custom nginx config
+RUN echo 'server { listen 8080; location / { root /usr/share/nginx/html; try_files $uri /index.html; } }' > /etc/nginx/conf.d/default.conf
 
-# Copy built assets from builder
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/public ./public
+# Copy built assets from builder to nginx
+COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Expose port
-EXPOSE 3000
+EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
-
-# Start the application
-CMD ["serve", "-s", "dist", "-l", "3000"]
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
