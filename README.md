@@ -6,9 +6,7 @@
   **AI-Powered Supply Chain Intelligence**  
   *Predict risks, optimize routes, and transform logistics operations in real-time*
   
-  [![Google Solution Challenge](https://img.shields.io/badge/Google_Solution_Challenge-Finalist-blue?style=for-the-badge)](https://bit.ly/3bGVfuP)
-  [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
-  [![Status](https://img.shields.io/badge/Status-Active_Development-brightgreen?style=for-the-badge)](.)
+
   
 </div>
 
@@ -341,35 +339,8 @@ gcloud run deploy supplychainai-backend \
 
 ---
 
-## 🤝 Contributing
 
-We welcome contributions from developers, researchers, and logistics professionals!
 
-```bash
-# Fork the repo
-git clone https://github.com/yourusername/supplychainai.git
-cd supplychainai
-
-# Create a feature branch
-git checkout -b feature/your-feature
-
-# Make changes & commit
-git add .
-git commit -m "Add awesome feature"
-
-# Push & open a PR
-git push origin feature/your-feature
-```
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License** — see [LICENSE](./LICENSE) for details.
-
----
 
 ## 🙌 Acknowledgments
 
@@ -411,6 +382,4 @@ This project is licensed under the **MIT License** — see [LICENSE](./LICENSE) 
 
 Pub/Sub • Dataflow • BigQuery • Cloud Storage • Cloud Run • Cloud Functions • Firebase Auth • Firestore • Firebase Hosting • Artifact Registry • Google Maps Platform
 
-## 📄 License
 
-MIT
